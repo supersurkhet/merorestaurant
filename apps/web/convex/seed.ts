@@ -165,10 +165,14 @@ export const seedDatabase = internalMutation({
       slug: "himalayan-bites-ktm",
       address: "Thamel, Kathmandu, Nepal",
       phone: "01-4441234",
+      city: "Kathmandu",
       timezone: "Asia/Kathmandu",
       currency: "NPR",
+      taxRate: 0.13,
       isActive: true,
       ownerId: "workos-anita",
+      subscriptionTier: "starter",
+      onboardingStatus: "complete",
     });
 
     const menu2 = await ctx.db.insert("menus", {

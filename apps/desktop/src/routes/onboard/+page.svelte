@@ -1,0 +1,399 @@
+<script lang="ts">
+	import Card from '$lib/components/ui/card.svelte';
+	import Button from '$lib/components/ui/button.svelte';
+	import Badge from '$lib/components/ui/badge.svelte';
+	import Input from '$lib/components/ui/input.svelte';
+	import Textarea from '$lib/components/ui/textarea.svelte';
+	import Select from '$lib/components/ui/select.svelte';
+	import { getAuth } from '$lib/stores/auth.svelte';
+	import { getRestaurant } from '$lib/stores/restaurant.svelte';
+	import { getI18n } from '$lib/stores/i18n.svelte';
+	import { useConvexClient, api } from '$lib/convex';
+	import { goto } from '$app/navigation';
+	import {
+		Building2, UtensilsCrossed, Table2, Wifi, CheckCircle,
+		ArrowRight, ArrowLeft, Loader2, Plus, Trash2
+	} from 'lucide-svelte';
+
+	const auth = getAuth();
+	const restaurant = getRestaurant();
+	const i18n = getI18n();
+	const client = useConvexClient();
+
+	let step = $state(1);
+	let saving = $state(false);
+	const totalSteps = 5;
+
+	// Step 1: Restaurant profile
+	let profile = $state({
+		name: '', nameNe: '', slug: '', address: '', city: 'Surkhet',
+		phone: '', email: '', description: '', descriptionNe: ''
+	});
+
+	// Step 2: Menu
+	let newCategory = $state({ name: '', nameNe: '' });
+	let categories = $state<{ name: string; nameNe: string; items: { name: string; nameNe: string; price: number; isVeg: boolean }[] }[]>([]);
+	let newItem = $state({ name: '', nameNe: '', price: 0, isVeg: false, categoryIdx: 0 });
+
+	// Step 3: Tables
+	let tableCount = $state(6);
+	let defaultCapacity = $state(4);
+
+	// Step 4: WiFi
+	let wifi = $state({ ssid: '', password: '', encryptionType: 'WPA2' });
+
+	// Auto-generate slug
+	$effect(() => {
+		if (profile.name && !profile.slug) {
+			profile.slug = profile.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+		}
+	});
+
+	function addCategory() {
+		if (!newCategory.name) return;
+		categories = [...categories, { ...newCategory, items: [] }];
+		newCategory = { name: '', nameNe: '' };
+	}
+
+	function addItem() {
+		if (!newItem.name || categories.length === 0) return;
+		categories[newItem.categoryIdx].items = [
+			...categories[newItem.categoryIdx].items,
+			{ name: newItem.name, nameNe: newItem.nameNe, price: newItem.price, isVeg: newItem.isVeg }
+		];
+		newItem = { name: '', nameNe: '', price: 0, isVeg: false, categoryIdx: newItem.categoryIdx };
+	}
+
+	function removeCategory(idx: number) {
+		categories = categories.filter((_, i) => i !== idx);
+	}
+
+	async function saveStep() {
+		saving = true;
+		try {
+			if (step === 1) {
+				// Register restaurant
+				if (!auth.user) return;
+				const id = await client.mutation(api.restaurants.register, {
+					ownerId: auth.user._id as any,
+					name: profile.name,
+					nameNe: profile.nameNe || undefined,
+					slug: profile.slug,
+					address: profile.address,
+					city: profile.city,
+					phone: profile.phone,
+					email: profile.email || undefined,
+					description: profile.description || undefined,
+					descriptionNe: profile.descriptionNe || undefined
+				} as any);
+				restaurant.set({
+					id: id as string,
+					name: profile.name,
+					nameNe: profile.nameNe,
+					slug: profile.slug,
+					onboardingStatus: 'registered',
+					subscriptionTier: 'free'
+				});
+				await client.mutation(api.restaurants.advanceOnboarding, {
+					id: id as any,
+					status: 'profile_complete' as any
+				});
+				step = 2;
+			} else if (step === 2) {
+				// Create categories and items
+				const rid = restaurant.id;
+				if (!rid) return;
+				for (const cat of categories) {
+					const catId = await client.mutation(api.categories.create, {
+						restaurantId: rid as any,
+						name: cat.name,
+						nameNe: cat.nameNe || cat.name,
+						sortOrder: categories.indexOf(cat) + 1
+					} as any);
+					for (const item of cat.items) {
+						await client.mutation(api.menuItems.create, {
+							restaurantId: rid as any,
+							categoryId: catId as any,
+							name: item.name,
+							nameNe: item.nameNe || item.name,
+							price: item.price,
+							isVeg: item.isVeg,
+							sortOrder: cat.items.indexOf(item) + 1
+						} as any);
+					}
+				}
+				await client.mutation(api.restaurants.advanceOnboarding, {
+					id: rid as any,
+					status: 'menu_added' as any
+				});
+				step = 3;
+			} else if (step === 3) {
+				// Create tables
+				const rid = restaurant.id;
+				if (!rid) return;
+				for (let i = 1; i <= tableCount; i++) {
+					await client.mutation(api.tables.create, {
+						restaurantId: rid as any,
+						number: i,
+						label: `Table ${i}`,
+						capacity: defaultCapacity
+					} as any);
+				}
+				await client.mutation(api.restaurants.advanceOnboarding, {
+					id: rid as any,
+					status: 'tables_configured' as any
+				});
+				step = 4;
+			} else if (step === 4) {
+				// Configure WiFi
+				const rid = restaurant.id;
+				if (!rid) return;
+				await client.mutation(api.wifiConfigs.update, {
+					restaurantId: rid as any,
+					ssid: wifi.ssid,
+					password: wifi.password,
+					encryptionType: wifi.encryptionType as any
+				} as any);
+				step = 5;
+			} else if (step === 5) {
+				// Go live
+				const rid = restaurant.id;
+				if (!rid) return;
+				await client.mutation(api.restaurants.advanceOnboarding, {
+					id: rid as any,
+					status: 'operational' as any
+				});
+				restaurant.set({ ...restaurant.current!, onboardingStatus: 'operational' });
+				goto('/');
+			}
+		} catch (e) {
+			console.error('Onboarding step failed:', e);
+		} finally {
+			saving = false;
+		}
+	}
+
+	const stepLabels = ['Restaurant Profile', 'Menu & Categories', 'Tables', 'WiFi Setup', 'Go Live!'];
+	const stepIcons = [Building2, UtensilsCrossed, Table2, Wifi, CheckCircle];
+
+	const canProceed = $derived.by(() => {
+		if (step === 1) return profile.name.length > 0 && profile.slug.length > 0 && profile.address.length > 0 && profile.phone.length > 0;
+		if (step === 2) return categories.length > 0 && categories.some((c) => c.items.length > 0);
+		if (step === 3) return tableCount > 0;
+		if (step === 4) return wifi.ssid.length > 0 && wifi.password.length > 0;
+		return true;
+	});
+</script>
+
+<div class="flex h-screen bg-background">
+	<!-- Step sidebar -->
+	<div class="w-64 border-r bg-sidebar p-6 space-y-6">
+		<div class="flex items-center gap-3">
+			<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">म</div>
+			<div>
+				<p class="text-sm font-bold">Setup Wizard</p>
+				<p class="text-[10px] text-muted-foreground">Step {step} of {totalSteps}</p>
+			</div>
+		</div>
+
+		<div class="space-y-2">
+			{#each stepLabels as label, idx}
+				{@const StepIcon = stepIcons[idx]}
+				{@const isComplete = idx + 1 < step}
+				{@const isCurrent = idx + 1 === step}
+				<div class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm {isCurrent ? 'bg-primary/10 text-primary font-medium' : isComplete ? 'text-success' : 'text-muted-foreground'}">
+					{#if isComplete}
+						<CheckCircle size={16} class="text-success" />
+					{:else}
+						<StepIcon size={16} />
+					{/if}
+					{label}
+				</div>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Main content -->
+	<div class="flex-1 overflow-y-auto p-8">
+		<div class="max-w-2xl mx-auto space-y-6">
+			{#if step === 1}
+				<h2 class="text-2xl font-bold">Restaurant Details</h2>
+				<p class="text-muted-foreground">Tell us about your restaurant</p>
+				<div class="space-y-4">
+					<div class="grid grid-cols-2 gap-3">
+						<div>
+							<label class="text-sm font-medium block mb-1" for="rName">Restaurant Name</label>
+							<Input id="rName" bind:value={profile.name} placeholder="My Restaurant" />
+						</div>
+						<div>
+							<label class="text-sm font-medium block mb-1" for="rNameNe">Name (नेपाली)</label>
+							<Input id="rNameNe" bind:value={profile.nameNe} placeholder="मेरो रेस्टुरेन्ट" />
+						</div>
+					</div>
+					<div>
+						<label class="text-sm font-medium block mb-1" for="rSlug">URL Slug</label>
+						<Input id="rSlug" bind:value={profile.slug} placeholder="my-restaurant" />
+					</div>
+					<div class="grid grid-cols-2 gap-3">
+						<div>
+							<label class="text-sm font-medium block mb-1" for="rAddr">Address</label>
+							<Input id="rAddr" bind:value={profile.address} placeholder="Main Road, Ward 5" />
+						</div>
+						<div>
+							<label class="text-sm font-medium block mb-1" for="rCity">City</label>
+							<Input id="rCity" bind:value={profile.city} placeholder="Surkhet" />
+						</div>
+					</div>
+					<div class="grid grid-cols-2 gap-3">
+						<div>
+							<label class="text-sm font-medium block mb-1" for="rPhone">Phone</label>
+							<Input id="rPhone" bind:value={profile.phone} placeholder="98XXXXXXXX" />
+						</div>
+						<div>
+							<label class="text-sm font-medium block mb-1" for="rEmail">Email</label>
+							<Input id="rEmail" bind:value={profile.email} placeholder="info@restaurant.com" />
+						</div>
+					</div>
+					<div>
+						<label class="text-sm font-medium block mb-1" for="rDesc">Description</label>
+						<Textarea id="rDesc" bind:value={profile.description} placeholder="A brief description..." />
+					</div>
+				</div>
+
+			{:else if step === 2}
+				<h2 class="text-2xl font-bold">Menu Setup</h2>
+				<p class="text-muted-foreground">Add at least one category with one item</p>
+
+				<!-- Add Category -->
+				<Card class="p-4 space-y-3">
+					<h3 class="font-semibold text-sm">Add Category</h3>
+					<div class="flex gap-2">
+						<Input bind:value={newCategory.name} placeholder="Category name" class="flex-1" />
+						<Input bind:value={newCategory.nameNe} placeholder="नेपाली नाम" class="flex-1" />
+						<Button size="sm" onclick={addCategory} disabled={!newCategory.name}>
+							<Plus size={14} /> Add
+						</Button>
+					</div>
+				</Card>
+
+				<!-- Categories + Items -->
+				{#each categories as cat, catIdx}
+					<Card class="p-4 space-y-3">
+						<div class="flex items-center justify-between">
+							<h3 class="font-semibold">{cat.name} {cat.nameNe ? `(${cat.nameNe})` : ''}</h3>
+							<Button size="icon" variant="ghost" onclick={() => removeCategory(catIdx)}>
+								<Trash2 size={14} class="text-destructive" />
+							</Button>
+						</div>
+						{#each cat.items as item, itemIdx}
+							<div class="flex items-center gap-2 text-sm pl-4 border-l-2 border-primary/20">
+								<span class="flex-1">{item.name}</span>
+								<Badge variant="secondary">रू {item.price}</Badge>
+								{#if item.isVeg}
+									<Badge variant="success" class="text-[10px]">Veg</Badge>
+								{/if}
+							</div>
+						{/each}
+
+						<!-- Add item to this category -->
+						{#if newItem.categoryIdx === catIdx}
+							<div class="flex gap-2 items-end">
+								<Input bind:value={newItem.name} placeholder="Item name" class="flex-1" />
+								<Input bind:value={newItem.price} type="number" placeholder="Price" class="w-24" />
+								<label class="flex items-center gap-1 text-xs whitespace-nowrap">
+									<input type="checkbox" bind:checked={newItem.isVeg} /> Veg
+								</label>
+								<Button size="sm" onclick={addItem} disabled={!newItem.name}>
+									<Plus size={14} />
+								</Button>
+							</div>
+						{:else}
+							<Button size="sm" variant="ghost" onclick={() => (newItem.categoryIdx = catIdx)}>
+								<Plus size={12} /> Add item
+							</Button>
+						{/if}
+					</Card>
+				{/each}
+
+			{:else if step === 3}
+				<h2 class="text-2xl font-bold">Table Setup</h2>
+				<p class="text-muted-foreground">How many tables does your restaurant have?</p>
+				<Card class="p-6 space-y-4">
+					<div>
+						<label class="text-sm font-medium block mb-1" for="tCount">Number of Tables</label>
+						<Input id="tCount" type="number" bind:value={tableCount} min={1} max={100} />
+					</div>
+					<div>
+						<label class="text-sm font-medium block mb-1" for="tCap">Default Capacity (seats per table)</label>
+						<Input id="tCap" type="number" bind:value={defaultCapacity} min={1} max={20} />
+					</div>
+					<p class="text-xs text-muted-foreground">
+						QR codes will be auto-generated for each table. You can customize individual tables later.
+					</p>
+				</Card>
+
+			{:else if step === 4}
+				<h2 class="text-2xl font-bold">WiFi Configuration</h2>
+				<p class="text-muted-foreground">Set up customer WiFi — this will be embedded in QR codes</p>
+				<Card class="p-6 space-y-4">
+					<div>
+						<label class="text-sm font-medium block mb-1" for="wSsid">{i18n.t('wifi.ssid')}</label>
+						<Input id="wSsid" bind:value={wifi.ssid} placeholder="Restaurant_WiFi" />
+					</div>
+					<div>
+						<label class="text-sm font-medium block mb-1" for="wPass">{i18n.t('wifi.password')}</label>
+						<Input id="wPass" bind:value={wifi.password} placeholder="WiFi password" />
+					</div>
+					<div>
+						<label class="text-sm font-medium block mb-1" for="wEnc">{i18n.t('wifi.encryption')}</label>
+						<Select id="wEnc" bind:value={wifi.encryptionType}>
+							<option value="WPA2">WPA2 (Recommended)</option>
+							<option value="WPA">WPA</option>
+							<option value="WEP">WEP</option>
+							<option value="nopass">Open</option>
+						</Select>
+					</div>
+				</Card>
+
+			{:else if step === 5}
+				<div class="text-center space-y-6 py-8">
+					<div class="flex h-20 w-20 items-center justify-center rounded-full bg-success/20 mx-auto">
+						<CheckCircle size={40} class="text-success" />
+					</div>
+					<h2 class="text-2xl font-bold">Ready to Go Live!</h2>
+					<p class="text-muted-foreground max-w-md mx-auto">
+						Your restaurant <strong>{restaurant.name}</strong> is all set up.
+						Click below to make it operational and start receiving orders.
+					</p>
+					<div class="flex justify-center gap-4">
+						<Badge variant="success">Profile</Badge>
+						<Badge variant="success">Menu ({categories.length} categories)</Badge>
+						<Badge variant="success">{tableCount} Tables</Badge>
+						<Badge variant="success">WiFi</Badge>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Navigation -->
+			<div class="flex justify-between pt-4 border-t">
+				{#if step > 1}
+					<Button variant="outline" onclick={() => step--} disabled={saving}>
+						<ArrowLeft size={14} /> Back
+					</Button>
+				{:else}
+					<div></div>
+				{/if}
+				<Button onclick={saveStep} disabled={!canProceed || saving}>
+					{#if saving}
+						<Loader2 size={14} class="animate-spin" />
+					{:else if step === totalSteps}
+						<CheckCircle size={14} />
+					{:else}
+						<ArrowRight size={14} />
+					{/if}
+					{step === totalSteps ? 'Go Live!' : 'Continue'}
+				</Button>
+			</div>
+		</div>
+	</div>
+</div>

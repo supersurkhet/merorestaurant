@@ -57,7 +57,7 @@
 
 			<div>
 				<h3 class="mb-4 text-sm font-semibold tracking-wider text-foreground uppercase">
-					Links
+					{$t('footer.links')}
 				</h3>
 				<div class="space-y-3 text-sm text-muted-foreground">
 					<a href="/menu" class="block hover:text-primary">{$t('nav.menu')}</a>

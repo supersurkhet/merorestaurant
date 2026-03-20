@@ -72,10 +72,10 @@
 			class="mb-6 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
 		>
 			<ArrowLeft class="h-4 w-4" />
-			Back to Menu
+			{$t('order.backToMenu')}
 		</a>
 		<h1 class="font-[var(--font-display)] text-4xl font-bold text-white">
-			Your Order
+			{$t('order.title')}
 		</h1>
 	</div>
 </section>
@@ -85,15 +85,15 @@
 		{#if cart.items.length === 0}
 			<div class="rounded-2xl border border-border bg-card py-20 text-center">
 				<ShoppingCart class="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
-				<h2 class="text-xl font-semibold text-foreground">Your cart is empty</h2>
+				<h2 class="text-xl font-semibold text-foreground">{$t('order.emptyCart')}</h2>
 				<p class="mt-2 text-muted-foreground">
-					Add some delicious items from our menu
+					{$t('order.emptyCartDesc')}
 				</p>
 				<a
 					href="/menu"
 					class="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
 				>
-					Browse Menu
+					{$t('order.browseMenu')}
 					<ArrowRight class="h-4 w-4" />
 				</a>
 			</div>
@@ -104,7 +104,7 @@
 						<div class="border-b border-border p-6">
 							<h2 class="flex items-center gap-2 text-lg font-semibold text-foreground">
 								<ShoppingCart class="h-5 w-5 text-primary" />
-								Cart ({cart.itemCount} items)
+								{$t('order.cart')} ({cart.itemCount} {$t('order.items')})
 							</h2>
 						</div>
 
@@ -120,7 +120,7 @@
 											{$locale === 'ne' ? (item.nameNe || item.name) : item.name}
 										</h3>
 										<p class="text-sm text-muted-foreground">
-											Rs. {item.price} each
+											Rs. {item.price} {$t('order.each')}
 										</p>
 									</div>
 
@@ -161,31 +161,31 @@
 
 					<div class="mt-6 rounded-2xl border border-border bg-card p-6">
 						<h3 class="mb-4 text-sm font-semibold tracking-wider text-foreground uppercase">
-							Order Details
+							{$t('order.details')}
 						</h3>
 						<div class="space-y-4">
 							<div>
 								<label for="name" class="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
 									<User class="h-4 w-4 text-muted-foreground" />
-									Name (optional)
+									{$t('order.name')}
 								</label>
 								<input
 									id="name"
 									type="text"
 									bind:value={customerName}
-									placeholder="Your name"
+									placeholder={$t('order.namePlaceholder')}
 									class="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
 								/>
 							</div>
 							<div>
 								<label for="notes" class="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
 									<MessageSquare class="h-4 w-4 text-muted-foreground" />
-									Special Instructions
+									{$t('order.instructions')}
 								</label>
 								<textarea
 									id="notes"
 									bind:value={notes}
-									placeholder="Any allergies, preferences, or special requests..."
+									placeholder={$t('order.instructionsPlaceholder')}
 									rows="3"
 									class="w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
 								></textarea>
@@ -199,22 +199,22 @@
 						<div class="border-b border-border p-6">
 							<h2 class="flex items-center gap-2 text-lg font-semibold text-foreground">
 								<Receipt class="h-5 w-5 text-primary" />
-								Order Summary
+								{$t('order.summary')}
 							</h2>
 						</div>
 						<div class="p-6">
 							<div class="space-y-3 text-sm">
 								<div class="flex justify-between text-muted-foreground">
-									<span>Subtotal</span>
+									<span>{$t('order.subtotal')}</span>
 									<span>Rs. {cart.total}</span>
 								</div>
 								<div class="flex justify-between text-muted-foreground">
-									<span>VAT (13%)</span>
+									<span>{$t('order.vat')}</span>
 									<span>Rs. {cart.vatAmount}</span>
 								</div>
 								<div class="border-t border-border pt-3">
 									<div class="flex justify-between text-lg font-bold text-foreground">
-										<span>Total</span>
+										<span>{$t('order.total')}</span>
 										<span class="text-primary">Rs. {cart.totalWithVat}</span>
 									</div>
 								</div>
@@ -234,15 +234,15 @@
 								{#if isPlacing}
 									<span class="inline-flex items-center gap-2">
 										<span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-										Placing Order...
+										{$t('order.placing')}
 									</span>
 								{:else}
-									Place Order — Rs. {cart.totalWithVat}
+									{$t('order.placeOrder')} — Rs. {cart.totalWithVat}
 								{/if}
 							</button>
 
 							<p class="mt-4 text-center text-xs text-muted-foreground">
-								Payment will be collected at the restaurant
+								{$t('order.paymentNote')}
 							</p>
 						</div>
 					</div>

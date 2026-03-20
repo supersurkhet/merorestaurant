@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { t } from '$i18n';
+	import { t, locale } from '$i18n';
 	import { useQuery, useConvexClient } from 'convex-svelte';
 	import { api } from '$lib/convex-api';
 	import { RESTAURANT_SLUG } from '$lib/stores/restaurant.svelte';
@@ -30,8 +30,8 @@
 
 	interface PaymentOption {
 		id: PaymentMethod;
-		name: string;
-		description: string;
+		nameKey: string;
+		descKey: string;
 		icon: typeof CreditCard;
 		color: string;
 		bgColor: string;
@@ -40,32 +40,32 @@
 	const paymentOptions: PaymentOption[] = [
 		{
 			id: 'khalti',
-			name: 'Khalti',
-			description: 'Pay with Khalti digital wallet',
+			nameKey: 'payment.khalti',
+			descKey: 'payment.khaltiDesc',
 			icon: Smartphone,
 			color: 'text-purple-600 dark:text-purple-400',
 			bgColor: 'bg-purple-100 dark:bg-purple-900/30'
 		},
 		{
 			id: 'esewa',
-			name: 'eSewa',
-			description: 'Pay with eSewa mobile wallet',
+			nameKey: 'payment.esewa',
+			descKey: 'payment.esewaDesc',
 			icon: Smartphone,
 			color: 'text-green-600 dark:text-green-400',
 			bgColor: 'bg-green-100 dark:bg-green-900/30'
 		},
 		{
 			id: 'fonepay',
-			name: 'Fonepay',
-			description: 'Pay via Fonepay QR',
+			nameKey: 'payment.fonepay',
+			descKey: 'payment.fonepayDesc',
 			icon: CreditCard,
 			color: 'text-red-600 dark:text-red-400',
 			bgColor: 'bg-red-100 dark:bg-red-900/30'
 		},
 		{
 			id: 'cash',
-			name: 'Cash',
-			description: 'Pay at the counter',
+			nameKey: 'payment.cash',
+			descKey: 'payment.cashDesc',
 			icon: Banknote,
 			color: 'text-amber-600 dark:text-amber-400',
 			bgColor: 'bg-amber-100 dark:bg-amber-900/30'
@@ -129,10 +129,10 @@
 			class="mb-6 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
 		>
 			<ArrowLeft class="h-4 w-4" />
-			Back to Order
+			{$t('payment.backToOrder')}
 		</a>
 		<h1 class="font-[var(--font-display)] text-3xl font-bold text-white">
-			Payment
+			{$t('payment.title')}
 		</h1>
 	</div>
 </section>
@@ -146,23 +146,23 @@
 					<Check class="h-8 w-8 text-green-500" />
 				</div>
 				<h2 class="text-2xl font-bold text-green-800 dark:text-green-300">
-					Payment Successful!
+					{$t('payment.success')}
 				</h2>
 				<p class="mt-2 text-green-600 dark:text-green-400/70">
-					Your payment has been received. Thank you!
+					{$t('payment.successDesc')}
 				</p>
 				<div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
 					<a
 						href="/order/{orderId}"
 						class="rounded-xl bg-green-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-green-700"
 					>
-						View Order Status
+						{$t('payment.viewOrder')}
 					</a>
 					<a
 						href="/"
 						class="rounded-xl border border-border bg-card px-6 py-3 font-semibold text-foreground transition-colors hover:bg-secondary"
 					>
-						Back to Home
+						{$t('order.backToHome')}
 					</a>
 				</div>
 			</div>
@@ -172,7 +172,7 @@
 				<div class="border-b border-border p-6">
 					<h2 class="flex items-center gap-2 text-lg font-semibold text-foreground">
 						<Receipt class="h-5 w-5 text-primary" />
-						Choose Payment Method
+						{$t('payment.chooseMethod')}
 					</h2>
 				</div>
 
@@ -188,8 +188,8 @@
 								<option.icon class="h-6 w-6 {option.color}" />
 							</div>
 							<div class="flex-1">
-								<p class="font-semibold text-foreground">{option.name}</p>
-								<p class="text-sm text-muted-foreground">{option.description}</p>
+								<p class="font-semibold text-foreground">{$t(option.nameKey)}</p>
+								<p class="text-sm text-muted-foreground">{$t(option.descKey)}</p>
 							</div>
 							{#if selectedMethod === option.id}
 								<div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
@@ -216,12 +216,12 @@
 						{#if processing}
 							<span class="inline-flex items-center gap-2">
 								<Loader2 class="h-4 w-4 animate-spin" />
-								Processing...
+								{$t('payment.processing')}
 							</span>
 						{:else if selectedMethod}
-							Pay with {paymentOptions.find((o) => o.id === selectedMethod)?.name}
+							{$t('payment.payWith')} {$t(paymentOptions.find((o) => o.id === selectedMethod)?.nameKey ?? '')}
 						{:else}
-							Select a payment method
+							{$t('payment.selectMethod')}
 						{/if}
 					</button>
 				</div>

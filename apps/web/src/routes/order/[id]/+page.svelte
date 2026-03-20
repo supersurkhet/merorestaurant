@@ -45,11 +45,11 @@
 	} as const;
 
 	const steps = [
-		{ id: 'pending', label: 'Order Placed', labelNe: 'अर्डर गरियो', icon: CheckCircle2 },
-		{ id: 'confirmed', label: 'Confirmed', labelNe: 'पुष्टि भयो', icon: Bell },
-		{ id: 'preparing', label: 'Preparing', labelNe: 'तयार हुँदैछ', icon: ChefHat },
-		{ id: 'ready', label: 'Ready', labelNe: 'तयार छ', icon: UtensilsCrossed },
-		{ id: 'served', label: 'Served', labelNe: 'सर्भ भयो', icon: PartyPopper }
+		{ id: 'pending', key: 'order.status.pending', icon: CheckCircle2 },
+		{ id: 'confirmed', key: 'order.status.confirmed', icon: Bell },
+		{ id: 'preparing', key: 'order.status.preparing', icon: ChefHat },
+		{ id: 'ready', key: 'order.status.ready', icon: UtensilsCrossed },
+		{ id: 'served', key: 'order.status.served', icon: PartyPopper }
 	];
 
 	const currentStepIndex = $derived(
@@ -93,16 +93,16 @@
 			class="mb-6 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
 		>
 			<ArrowLeft class="h-4 w-4" />
-			Order More
+			{$t('order.orderMore')}
 		</a>
 		<h1 class="font-[var(--font-display)] text-3xl font-bold text-white">
 			Order #{orderNumber}
 		</h1>
 		<p class="mt-2 text-white/60">
 			{#if order}
-				{order.customerName ? `${order.customerName} — ` : ''}Real-time tracking
+				{order.customerName ? `${order.customerName} — ` : ''}{$t('order.realtime')}
 			{:else}
-				Track your order in real-time
+				{$t('order.trackTitle')}
 			{/if}
 		</p>
 	</div>
@@ -114,31 +114,31 @@
 			<div class="flex justify-center py-20">
 				<div class="flex flex-col items-center gap-3">
 					<Loader2 class="h-8 w-8 animate-spin text-primary" />
-					<p class="text-sm text-muted-foreground">Loading order...</p>
+					<p class="text-sm text-muted-foreground">{$t('order.loading')}</p>
 				</div>
 			</div>
 		{:else if !order && !orderQuery.isLoading}
 			<div class="rounded-2xl border border-border bg-card py-16 text-center">
 				<AlertCircle class="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
-				<h2 class="text-lg font-semibold text-foreground">Order not found</h2>
+				<h2 class="text-lg font-semibold text-foreground">{$t('order.notFound')}</h2>
 				<p class="mt-2 text-sm text-muted-foreground">
-					Order #{orderNumber} could not be found. It may still be processing.
+					{$t('order.notFoundDesc')}
 				</p>
 				<a
 					href="/menu"
 					class="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground"
 				>
-					Browse Menu
+					{$t('order.browseMenu')}
 				</a>
 			</div>
 		{:else if isCancelled}
 			<div class="rounded-2xl border border-red-200 bg-red-50 px-6 py-10 text-center dark:border-red-900/50 dark:bg-red-950/20">
 				<AlertCircle class="mx-auto mb-3 h-10 w-10 text-red-500" />
 				<h3 class="text-lg font-semibold text-red-800 dark:text-red-300">
-					Order Cancelled
+					{$t('order.cancelled')}
 				</h3>
 				<p class="mt-1 text-sm text-red-600 dark:text-red-400/70">
-					This order has been cancelled
+					{$t('order.cancelledDesc')}
 					{#if order?.cancelledAt}
 						at {formatTime(order.cancelledAt)}
 					{/if}
@@ -196,14 +196,14 @@
 											? 'text-foreground'
 											: 'text-muted-foreground/60'}"
 									>
-										{$locale === 'ne' ? step.labelNe : step.label}
+										{$t(step.key)}
 									</h3>
 									{#if active && !isComplete}
 										<span
 											class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
 										>
 											<span class="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500"></span>
-											In Progress
+											{$t('order.inProgress')}
 										</span>
 									{/if}
 								</div>
@@ -228,10 +228,10 @@
 					</div>
 					<div>
 						<p class="font-medium text-amber-900 dark:text-amber-200">
-							Estimated time: ~15-25 minutes
+							{$t('order.estimatedTime')}
 						</p>
 						<p class="text-sm text-amber-700 dark:text-amber-400/70">
-							We'll update the status as your order progresses
+							{$t('order.estimatedTimeDesc')}
 						</p>
 					</div>
 				</div>
@@ -241,10 +241,10 @@
 				>
 					<PartyPopper class="mx-auto mb-3 h-10 w-10 text-green-500" />
 					<h3 class="text-lg font-semibold text-green-800 dark:text-green-300">
-						Enjoy your meal!
+						{$t('order.enjoyMeal')}
 					</h3>
 					<p class="mt-1 text-sm text-green-600 dark:text-green-400/70">
-						Thank you for dining at Mero Restaurant
+						{$t('order.thankYou')}
 					</p>
 				</div>
 			{/if}
@@ -256,7 +256,7 @@
 				<div class="border-b border-border p-6">
 					<h2 class="flex items-center gap-2 text-sm font-semibold tracking-wider text-muted-foreground uppercase">
 						<Receipt class="h-4 w-4" />
-						Order Details
+						{$t('order.details')}
 					</h2>
 				</div>
 				<div class="divide-y divide-border">
@@ -275,15 +275,15 @@
 				<div class="border-t border-border p-6">
 					<div class="space-y-2 text-sm">
 						<div class="flex justify-between text-muted-foreground">
-							<span>Subtotal</span>
+							<span>{$t('order.subtotal')}</span>
 							<span>Rs. {order.subtotal}</span>
 						</div>
 						<div class="flex justify-between text-muted-foreground">
-							<span>VAT (13%)</span>
+							<span>{$t('order.vat')}</span>
 							<span>Rs. {order.tax}</span>
 						</div>
 						<div class="flex justify-between border-t border-border pt-2 text-base font-bold text-foreground">
-							<span>Total</span>
+							<span>{$t('order.total')}</span>
 							<span class="text-primary">Rs. {order.total}</span>
 						</div>
 					</div>
@@ -294,7 +294,7 @@
 							class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3.5 font-semibold text-white shadow-lg transition-all hover:shadow-xl"
 						>
 							<CreditCard class="h-4 w-4" />
-							Pay Now — Rs. {order.total}
+							{$t('payment.payNow')} — Rs. {order.total}
 						</a>
 					{/if}
 				</div>
@@ -307,13 +307,13 @@
 				href="/menu"
 				class="flex-1 rounded-xl border border-border bg-card px-6 py-3.5 text-center font-medium text-foreground transition-colors hover:bg-secondary"
 			>
-				Order More Items
+				{$t('order.moreItems')}
 			</a>
 			<a
 				href="/"
 				class="flex-1 rounded-xl bg-primary px-6 py-3.5 text-center font-medium text-primary-foreground transition-colors hover:bg-primary/90"
 			>
-				Back to Home
+				{$t('order.backToHome')}
 			</a>
 		</div>
 	</div>

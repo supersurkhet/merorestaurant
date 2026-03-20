@@ -1,0 +1,27 @@
+{
+	"name": "Mero Restaurant",
+	"short_name": "MeroRestaurant",
+	"description": "Authentic Nepali Cuisine in Surkhet — Order food, track orders, connect to WiFi",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#ffffff",
+	"theme_color": "#ea580c",
+	"orientation": "portrait-primary",
+	"icons": [
+		{
+			"src": "/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any maskable"
+		}
+	],
+	"categories": ["food", "lifestyle"],
+	"lang": "en",
+	"dir": "ltr"
+}

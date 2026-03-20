@@ -16,43 +16,31 @@
 
 <section class="bg-background py-16">
 	<div class="prose prose-gray dark:prose-invert mx-auto max-w-3xl px-4 sm:px-6">
-		<p class="text-muted-foreground"><em>Last updated: March 2026</em></p>
+		<p class="text-muted-foreground"><em>{$t('terms.updated')}</em></p>
 
-		<h2>Acceptance of Terms</h2>
-		<p>
-			By accessing and using Mero Restaurant's website and mobile application, you accept and
-			agree to be bound by these Terms of Service.
-		</p>
+		<h2>{$t('terms.acceptance.title')}</h2>
+		<p>{$t('terms.acceptance.desc')}</p>
 
-		<h2>Orders and Payment</h2>
+		<h2>{$t('terms.orders.title')}</h2>
 		<ul>
-			<li>All prices are listed in Nepalese Rupees (NPR)</li>
-			<li>Prices may change without prior notice</li>
-			<li>We accept payments via Khalti, eSewa, Fonepay, and cash</li>
-			<li>Orders are confirmed only after successful payment processing</li>
+			<li>{$t('terms.orders.1')}</li>
+			<li>{$t('terms.orders.2')}</li>
+			<li>{$t('terms.orders.3')}</li>
+			<li>{$t('terms.orders.4')}</li>
 		</ul>
 
-		<h2>Delivery</h2>
-		<p>
-			Delivery is available within Birendranagar, Surkhet. Delivery times are estimates and may
-			vary based on order volume and conditions.
-		</p>
+		<h2>{$t('terms.delivery.title')}</h2>
+		<p>{$t('terms.delivery.desc')}</p>
 
-		<h2>Cancellations and Refunds</h2>
-		<p>
-			Orders may be cancelled within 5 minutes of placement. Refunds for cancelled orders will
-			be processed within 3-5 business days to the original payment method.
-		</p>
+		<h2>{$t('terms.cancellation.title')}</h2>
+		<p>{$t('terms.cancellation.desc')}</p>
 
-		<h2>WiFi Terms of Use</h2>
-		<p>
-			Our complimentary WiFi service is provided for customer use during dining. Usage is
-			subject to fair-use policies. Illegal activities are strictly prohibited.
-		</p>
+		<h2>{$t('terms.wifi.title')}</h2>
+		<p>{$t('terms.wifi.desc')}</p>
 
-		<h2>Contact</h2>
+		<h2>{$t('terms.contact.title')}</h2>
 		<p>
-			Questions about these terms? Contact us at
+			{$t('terms.contact.desc')}
 			<a href="mailto:hello@merorestaurant.com" class="text-primary">hello@merorestaurant.com</a>.
 		</p>
 	</div>

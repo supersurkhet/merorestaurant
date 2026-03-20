@@ -138,7 +138,7 @@
 					class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm"
 				>
 					<span class="h-2 w-2 animate-pulse rounded-full bg-green-400"></span>
-					<span class="text-sm text-white/80">Open Now — Serving Fresh</span>
+					<span class="text-sm text-white/80">{$t('hero.badge')}</span>
 				</div>
 
 				<h1 class="font-[var(--font-display)] text-5xl leading-tight font-bold text-white sm:text-7xl">
@@ -178,15 +178,15 @@
 						<p class="font-[var(--font-display)] text-3xl font-bold text-white">
 							{menuItemsQuery.data ? `${menuItemsQuery.data.length}+` : '14+'}
 						</p>
-						<p class="text-sm text-white/60">Signature Dishes</p>
+						<p class="text-sm text-white/60">{$t('hero.stat.dishes')}</p>
 					</div>
 					<div>
 						<p class="font-[var(--font-display)] text-3xl font-bold text-white">4.8</p>
-						<p class="text-sm text-white/60">Star Rating</p>
+						<p class="text-sm text-white/60">{$t('hero.stat.rating')}</p>
 					</div>
 					<div>
 						<p class="font-[var(--font-display)] text-3xl font-bold text-white">5+</p>
-						<p class="text-sm text-white/60">Years Serving</p>
+						<p class="text-sm text-white/60">{$t('hero.stat.years')}</p>
 					</div>
 				</div>
 			</div>
@@ -416,7 +416,7 @@
 					rel="noopener noreferrer"
 					class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
 				>
-					Open in Maps
+					{$t('info.openMaps')}
 					<ArrowRight class="h-3 w-3" />
 				</a>
 			</div>
@@ -465,8 +465,8 @@
 			>
 				<Apple class="h-7 w-7" />
 				<div class="text-left">
-					<p class="text-xs text-white/60">Download on the</p>
-					<p class="text-base font-semibold">App Store</p>
+					<p class="text-xs text-white/60">{$t('download.ios.label')}</p>
+					<p class="text-base font-semibold">{$t('download.ios.store')}</p>
 				</div>
 			</button>
 			<button
@@ -474,8 +474,8 @@
 			>
 				<PlayCircle class="h-7 w-7" />
 				<div class="text-left">
-					<p class="text-xs text-white/60">Get it on</p>
-					<p class="text-base font-semibold">Google Play</p>
+					<p class="text-xs text-white/60">{$t('download.android.label')}</p>
+					<p class="text-base font-semibold">{$t('download.android.store')}</p>
 				</div>
 			</button>
 		</div>

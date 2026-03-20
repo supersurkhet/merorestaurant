@@ -16,40 +16,30 @@
 
 <section class="bg-background py-16">
 	<div class="prose prose-gray dark:prose-invert mx-auto max-w-3xl px-4 sm:px-6">
-		<p class="text-muted-foreground"><em>Last updated: March 2026</em></p>
+		<p class="text-muted-foreground"><em>{$t('privacy.updated')}</em></p>
 
-		<h2>Information We Collect</h2>
-		<p>
-			When you use Mero Restaurant's website or mobile application, we may collect information
-			you provide directly, such as your name, email, phone number, and delivery address when
-			placing orders.
-		</p>
+		<h2>{$t('privacy.collect.title')}</h2>
+		<p>{$t('privacy.collect.desc')}</p>
 
-		<h2>How We Use Your Information</h2>
+		<h2>{$t('privacy.use.title')}</h2>
 		<ul>
-			<li>To process and fulfill your food orders</li>
-			<li>To send order confirmations and updates</li>
-			<li>To improve our services and menu offerings</li>
-			<li>To communicate special offers (with your consent)</li>
+			<li>{$t('privacy.use.1')}</li>
+			<li>{$t('privacy.use.2')}</li>
+			<li>{$t('privacy.use.3')}</li>
+			<li>{$t('privacy.use.4')}</li>
 		</ul>
 
-		<h2>Data Storage</h2>
-		<p>
-			Your data is stored securely and we do not sell or share your personal information with
-			third parties except as necessary to process your orders (e.g., payment processors).
-		</p>
+		<h2>{$t('privacy.storage.title')}</h2>
+		<p>{$t('privacy.storage.desc')}</p>
 
-		<h2>WiFi Usage</h2>
-		<p>
-			Our free WiFi service collects basic connection data for network management purposes only.
-			We do not monitor or log your browsing activity.
-		</p>
+		<h2>{$t('privacy.wifi.title')}</h2>
+		<p>{$t('privacy.wifi.desc')}</p>
 
-		<h2>Contact</h2>
+		<h2>{$t('privacy.contact.title')}</h2>
 		<p>
-			For privacy-related inquiries, contact us at
+			{$t('privacy.contact.desc')}
 			<a href="mailto:hello@merorestaurant.com" class="text-primary">hello@merorestaurant.com</a>
-			or visit us at Birendranagar, Surkhet, Nepal.
+			{$t('privacy.contact.suffix')}
 		</p>
 	</div>
 </section>

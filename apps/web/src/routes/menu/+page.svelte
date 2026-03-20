@@ -102,7 +102,7 @@
 						: 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}"
 					onclick={() => (activeCategory = 'all')}
 				>
-					All
+					{$t('menu.all')}
 				</button>
 				{#each categories as cat}
 					<button
@@ -203,10 +203,10 @@
 									>
 										{#if justAdded === id}
 											<Check class="h-4 w-4" />
-											Added
+											{$t('menu.added')}
 										{:else}
 											<Plus class="h-4 w-4" />
-											Add
+											{$t('menu.addToCart')}
 										{/if}
 									</button>
 								{/if}
@@ -228,7 +228,7 @@
 		<div class="relative">
 			<ShoppingCart class="h-5 w-5" />
 			<span
-				class="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-orange-600"
+				class="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-orange-600 dark:bg-orange-100"
 			>
 				{cart.itemCount}
 			</span>

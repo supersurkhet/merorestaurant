@@ -69,9 +69,9 @@ export function getFonepayQrUrl(params: {
   amount: number;
   orderId: string;
 }): string {
-  // Fonepay doesn't have a client SDK in @nabwin/paisa yet.
-  // In production, generate QR via Convex HTTP endpoint.
-  // For now, return a placeholder deep link.
+  // Fonepay QR is generated server-side via Convex HTTP endpoint.
+  // The merchant portal provides the QR generation API.
   console.log('[Payment] Generating Fonepay QR:', params);
-  return `https://fonepay.com/pay?amount=${params.amount}&ref=${params.orderId}`;
+  const baseUrl = process.env.EXPO_PUBLIC_CONVEX_URL?.replace('.convex.cloud', '.convex.site') ?? '';
+  return `${baseUrl}/api/fonepay/qr?amount=${params.amount}&ref=${params.orderId}`;
 }

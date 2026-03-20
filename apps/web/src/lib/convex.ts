@@ -4,6 +4,7 @@ import { ConvexClient } from 'convex/browser';
 // The ConvexProvider component in +layout.svelte handles client setup.
 const url =
 	(typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUBLIC_CONVEX_URL) ||
-	'https://placeholder.convex.cloud';
+	import.meta.env?.PUBLIC_CONVEX_URL ||
+	'';
 
 export const convex = new ConvexClient(url);

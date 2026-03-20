@@ -70,10 +70,10 @@
 			{#if user}
 				<a href="/dashboard" class="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-secondary/80">
 					<User class="h-3.5 w-3.5" />
-					{user.name || user.email}
+					{user.firstName || user.email}
 				</a>
 			{:else}
-				<a href="/auth/login" class="rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground">
+				<a href="/api/auth/login" class="rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground">
 					{$t('nav.login')}
 				</a>
 				<a href="/register" class="rounded-lg bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
@@ -109,7 +109,7 @@
 			</div>
 			{#if user}
 				<a href="/dashboard" class="mt-3 block rounded-lg bg-secondary py-2.5 text-center text-sm font-medium text-foreground">{$t('dashboard.title')}</a>
-				<a href="/auth/logout" class="mt-2 block text-center text-sm text-muted-foreground">Log out</a>
+				<a href="/api/auth/logout" class="mt-2 block text-center text-sm text-muted-foreground">Log out</a>
 			{:else}
 				<a href="/register" class="mt-3 block rounded-lg bg-primary py-2.5 text-center text-sm font-medium text-primary-foreground">{$t('nav.getStarted')}</a>
 			{/if}

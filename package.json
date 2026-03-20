@@ -1,6 +1,7 @@
 {
   "name": "merorestaurant",
   "private": true,
+  "packageManager": "bun@1.2.15",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "turbo dev",

@@ -13,7 +13,9 @@
 
 	const comparisonRows = [
 		{ feature: 'Restaurants', free: '1', starter: '1', pro: '3', enterprise: 'Unlimited' },
-		{ feature: 'Menu Items', free: '20', starter: '100', pro: 'Unlimited', enterprise: 'Unlimited' },
+		{ feature: 'Menu Items', free: '10', starter: '50', pro: 'Unlimited', enterprise: 'Unlimited' },
+		{ feature: 'Tables', free: '5', starter: '15', pro: 'Unlimited', enterprise: 'Unlimited' },
+		{ feature: 'Orders/month', free: '50', starter: '500', pro: '5,000', enterprise: 'Unlimited' },
 		{ feature: 'QR Table Codes', free: true, starter: true, pro: true, enterprise: true },
 		{ feature: 'Digital Menu', free: true, starter: true, pro: true, enterprise: true },
 		{ feature: 'Order Management', free: true, starter: true, pro: true, enterprise: true },

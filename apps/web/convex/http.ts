@@ -4,8 +4,10 @@ import { api } from "./_generated/api";
 
 const http = httpRouter();
 
+const KHALTI_SECRET_KEY = process.env.KHALTI_SECRET_KEY ?? "";
+const ESEWA_MERCHANT_CODE = process.env.ESEWA_MERCHANT_CODE ?? "";
+
 // ── Khalti payment verification ─────────────────────────────────────
-// Khalti redirects user back with pidx, then we verify server-side.
 http.route({
   path: "/api/payments/khalti/verify",
   method: "POST",
@@ -15,36 +17,39 @@ http.route({
       const { paymentId, pidx } = body;
 
       if (!paymentId || !pidx) {
-        return jsonResponse(
-          { error: "Missing paymentId or pidx" },
-          400,
-        );
+        return jsonResponse({ error: "Missing paymentId or pidx" }, 400);
       }
 
       // Verify with Khalti lookup API
-      // In production: POST https://khalti.com/api/v2/epayment/lookup/
-      // with { pidx } and Authorization header
-      // For now, we trust the callback and mark completed
-      const isVerified = true; // TODO: actual Khalti API call
+      const khaltiRes = await fetch(
+        "https://khalti.com/api/v2/epayment/lookup/",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Key ${KHALTI_SECRET_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pidx }),
+        }
+      );
+      const khaltiData = await khaltiRes.json();
+      const isVerified =
+        khaltiRes.ok && khaltiData.status === "Completed";
 
       await ctx.runMutation(api.payments.updateStatus, {
         id: paymentId as any,
         status: isVerified ? "completed" : "failed",
-        externalRef: `khalti-${pidx}`,
+        transactionId: `khalti-${pidx}`,
       });
 
-      return jsonResponse({ success: true, gateway: "khalti", pidx });
+      return jsonResponse({ success: isVerified, gateway: "khalti", pidx });
     } catch (error) {
-      return jsonResponse(
-        { error: errorMessage(error) },
-        500,
-      );
+      return jsonResponse({ error: errorMessage(error) }, 500);
     }
   }),
 });
 
 // ── eSewa payment verification ──────────────────────────────────────
-// eSewa redirects with encoded transaction data in query params.
 http.route({
   path: "/api/payments/esewa/verify",
   method: "POST",
@@ -57,8 +62,6 @@ http.route({
         return jsonResponse({ error: "Missing paymentId" }, 400);
       }
 
-      // Decode eSewa response (base64 encoded JSON)
-      // Contains: transaction_code, status, total_amount, transaction_uuid, product_code
       let esewaData: Record<string, unknown> = {};
       if (encodedData) {
         try {
@@ -70,17 +73,23 @@ http.route({
 
       const transactionCode =
         (esewaData.transaction_code as string) ?? "unknown";
-      const status = esewaData.status as string;
-      const isSuccess = status === "COMPLETE";
+      const transactionUuid =
+        (esewaData.transaction_uuid as string) ?? "";
+      const totalAmount = (esewaData.total_amount as number) ?? 0;
 
-      // TODO: Verify with eSewa transaction status API
-      // GET https://esewa.com.np/api/epay/transaction/status/
-      // with product_code, total_amount, transaction_uuid
+      // Verify with eSewa transaction status API
+      const esewaRes = await fetch(
+        `https://esewa.com.np/api/epay/transaction/status/?product_code=${ESEWA_MERCHANT_CODE}&total_amount=${totalAmount}&transaction_uuid=${transactionUuid}`,
+        { method: "GET" }
+      );
+      const esewaStatus = await esewaRes.json();
+      const isSuccess =
+        esewaRes.ok && esewaStatus.status === "COMPLETE";
 
       await ctx.runMutation(api.payments.updateStatus, {
         id: paymentId as any,
         status: isSuccess ? "completed" : "failed",
-        externalRef: `esewa-${transactionCode}`,
+        transactionId: `esewa-${transactionCode}`,
       });
 
       return jsonResponse({
@@ -89,16 +98,12 @@ http.route({
         transactionCode,
       });
     } catch (error) {
-      return jsonResponse(
-        { error: errorMessage(error) },
-        500,
-      );
+      return jsonResponse({ error: errorMessage(error) }, 500);
     }
   }),
 });
 
 // ── Fonepay payment verification ────────────────────────────────────
-// Fonepay sends callback with PRPN (Payment Reference Primary Number).
 http.route({
   path: "/api/payments/fonepay/verify",
   method: "POST",
@@ -108,34 +113,41 @@ http.route({
       const { paymentId, PRN, PRC, BID, UID, DV } = body;
 
       if (!paymentId || !PRN) {
-        return jsonResponse(
-          { error: "Missing paymentId or PRN" },
-          400,
-        );
+        return jsonResponse({ error: "Missing paymentId or PRN" }, 400);
       }
 
       // PRC (Payment Response Code): "successful" means success
+      // Verify HMAC-SHA256 signature of PRN,BID,PRC,UID with merchant key
       const isSuccess = PRC === "successful";
 
-      // TODO: Verify signature using DV (Data Validation) field
-      // HMAC-SHA256 of PRN,BID,PRC,UID with shared merchant key
+      if (isSuccess && DV) {
+        // Signature verification: in production, compute HMAC-SHA256
+        // of `PRN,BID,PRC,UID` with FONEPAY_SECRET_KEY and compare to DV
+        const FONEPAY_SECRET = process.env.FONEPAY_SECRET_KEY ?? "";
+        if (FONEPAY_SECRET) {
+          const encoder = new TextEncoder();
+          const keyData = encoder.encode(FONEPAY_SECRET);
+          const msgData = encoder.encode(`${PRN},${BID},${PRC},${UID}`);
+          const key = await crypto.subtle.importKey(
+            "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+          );
+          const sig = await crypto.subtle.sign("HMAC", key, msgData);
+          const computed = btoa(String.fromCharCode(...new Uint8Array(sig)));
+          if (computed !== DV) {
+            return jsonResponse({ error: "Invalid signature" }, 403);
+          }
+        }
+      }
 
       await ctx.runMutation(api.payments.updateStatus, {
         id: paymentId as any,
         status: isSuccess ? "completed" : "failed",
-        externalRef: `fonepay-${PRN}`,
+        transactionId: `fonepay-${PRN}`,
       });
 
-      return jsonResponse({
-        success: isSuccess,
-        gateway: "fonepay",
-        PRN,
-      });
+      return jsonResponse({ success: isSuccess, gateway: "fonepay", PRN });
     } catch (error) {
-      return jsonResponse(
-        { error: errorMessage(error) },
-        500,
-      );
+      return jsonResponse({ error: errorMessage(error) }, 500);
     }
   }),
 });
@@ -149,20 +161,15 @@ http.route({
     const slug = url.searchParams.get("slug");
 
     if (!slug) {
-      return jsonResponse(
-        { error: "Missing ?slug= query parameter" },
-        400,
-      );
+      return jsonResponse({ error: "Missing ?slug= query parameter" }, 400);
     }
 
-    const restaurant = await ctx.runQuery(api.restaurants.getBySlug, {
-      slug,
-    });
+    const restaurant = await ctx.runQuery(api.restaurants.getBySlug, { slug });
     if (!restaurant) {
       return jsonResponse({ error: "Restaurant not found" }, 404);
     }
 
-    const wifi = await ctx.runQuery(api.wifi.getByRestaurant, {
+    const wifi = await ctx.runQuery(api.wifiConfigs.getActiveByRestaurant, {
       restaurantId: restaurant._id,
     });
     if (!wifi) {

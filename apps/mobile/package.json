@@ -1,0 +1,50 @@
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "expo lint"
+  },
+  "dependencies": {
+    "@merorestaurant/utils": "workspace:*",
+    "@react-navigation/bottom-tabs": "~7.3.10",
+    "@react-navigation/native": "~7.1.6",
+    "convex": "^1.34.0",
+    "date-fns": "^4.1.0",
+    "expo": "~55.0.8",
+    "expo-camera": "~17.0.10",
+    "expo-constants": "^55.0.9",
+    "expo-font": "~14.0.4",
+    "expo-haptics": "~15.0.4",
+    "expo-linking": "^55.0.8",
+    "expo-router": "^55.0.7",
+    "expo-secure-store": "~15.0.3",
+    "expo-splash-screen": "~55.0.12",
+    "expo-status-bar": "^55.0.4",
+    "expo-symbols": "~0.4.4",
+    "expo-system-ui": "~5.0.7",
+    "expo-web-browser": "~15.0.4",
+    "lucide-react-native": "^0.577.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.83.2",
+    "react-native-gesture-handler": "~2.25.0",
+    "react-native-reanimated": "~3.19.0",
+    "react-native-safe-area-context": "~5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-svg": "^15.15.4",
+    "react-native-web": "~0.20.0",
+    "react-native-webview": "~13.13.5",
+    "zod": "^4.3.6",
+    "zustand": "~5.0.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}

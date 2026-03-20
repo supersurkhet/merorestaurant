@@ -62,7 +62,8 @@ export default defineSchema({
   })
     .index("by_menu", ["menuId"])
     .index("by_category", ["categoryId"])
-    .index("by_restaurant", ["restaurantId"]),
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_restaurant_available", ["restaurantId", "isAvailable"]),
 
   tables: defineTable({
     restaurantId: v.id("restaurants"),
@@ -155,7 +156,8 @@ export default defineSchema({
     processedBy: v.optional(v.string()),
   })
     .index("by_order", ["orderId"])
-    .index("by_restaurant", ["restaurantId"]),
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_restaurant_and_status", ["restaurantId", "status"]),
 
   notifications: defineTable({
     restaurantId: v.id("restaurants"),
@@ -172,6 +174,12 @@ export default defineSchema({
   })
     .index("by_restaurant", ["restaurantId"])
     .index("by_restaurant_unread", ["restaurantId", "isRead"]),
+
+  rateLimits: defineTable({
+    key: v.string(), // e.g. "placeOrder:restaurantId" or "createPayment:ip"
+    count: v.number(),
+    windowStart: v.number(), // timestamp of current window start
+  }).index("by_key", ["key"]),
 
   wifiConfigs: defineTable({
     restaurantId: v.id("restaurants"),

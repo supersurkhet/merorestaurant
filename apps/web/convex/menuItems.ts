@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
+import { validatePrice, validateStringLength } from "./validation";
+import { checkRateLimit } from "./rateLimit";
 
 export const listByCategory = query({
   args: { categoryId: v.id("categories") },
@@ -50,7 +52,11 @@ export const getImageUrl = query({
 });
 
 export const generateUploadUrl = mutation({
-  handler: async (ctx) => {
+  args: { restaurantId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    if (args.restaurantId) {
+      await checkRateLimit(ctx, "generateUploadUrl", args.restaurantId);
+    }
     return ctx.storage.generateUploadUrl();
   },
 });
@@ -69,6 +75,9 @@ export const create = mutation({
     sortOrder: v.number(),
   },
   handler: async (ctx, args) => {
+    validateStringLength(args.name, "Item name", 100);
+    validateStringLength(args.description, "Description", 500);
+    validatePrice(args.price);
     return ctx.db.insert("menuItems", { ...args, isAvailable: true });
   },
 });

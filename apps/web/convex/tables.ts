@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
+import { validateSeats, validateTableNumber } from "./validation";
 
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -34,6 +35,9 @@ export const create = mutation({
     qrCode: v.string(),
   },
   handler: async (ctx, args) => {
+    validateTableNumber(args.number);
+    validateSeats(args.seats);
+
     // Ensure qrCode is unique
     const existing = await ctx.db
       .query("tables")

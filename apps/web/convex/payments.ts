@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { throwLocalizedError } from "./i18n";
+import { checkRateLimit } from "./rateLimit";
+import { validatePaymentAmount } from "./validation";
 
 export const createPayment = mutation({
   args: {
@@ -19,6 +21,10 @@ export const createPayment = mutation({
     processedBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Rate limit: 5 payments/min per order
+    await checkRateLimit(ctx, "createPayment", args.orderId);
+    validatePaymentAmount(args.amount);
+
     const order = await ctx.db.get(args.orderId);
     if (!order) throwLocalizedError("order.not_found");
     return ctx.db.insert("payments", { ...args, status: "pending" });

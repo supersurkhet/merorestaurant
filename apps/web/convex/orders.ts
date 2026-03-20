@@ -3,6 +3,13 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { throwLocalizedError } from "./i18n";
+import { checkRateLimit } from "./rateLimit";
+import {
+  validatePhone,
+  validateQuantity,
+  validateStringLength,
+  validateOrderItems,
+} from "./validation";
 
 const TAX_RATE = 0.13; // 13% VAT (Nepal)
 const NEPAL_OFFSET_MS = (5 * 60 + 45) * 60 * 1000;
@@ -45,8 +52,20 @@ export const placeOrder = mutation({
     createdBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Rate limit: 10 orders/min per restaurant
+    await checkRateLimit(ctx, "placeOrder", args.restaurantId);
+
+    // Input validation
     if (args.items.length === 0) {
       throwLocalizedError("order.empty_items");
+    }
+    validateOrderItems(args.items.length);
+    validatePhone(args.customerPhone);
+    validateStringLength(args.customerName, "Customer name", 100);
+    validateStringLength(args.notes, "Notes", 500);
+    for (const item of args.items) {
+      validateQuantity(item.quantity);
+      validateStringLength(item.notes, "Item notes", 200);
     }
 
     // Count today's orders for sequential numbering

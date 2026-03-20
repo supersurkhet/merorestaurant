@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
+import { validateSlug, validatePhone, validateStringLength } from "./validation";
 
 export const getBySlug = query({
   args: { slug: v.string() },
@@ -34,6 +35,10 @@ export const create = mutation({
     ownerId: v.string(),
   },
   handler: async (ctx, args) => {
+    validateSlug(args.slug);
+    validateStringLength(args.name, "Restaurant name", 100);
+    validatePhone(args.phone);
+
     const existing = await ctx.db
       .query("restaurants")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))

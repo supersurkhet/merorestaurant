@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { validateSsid, validateStringLength } from "./validation";
 
 export const getActiveByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -37,6 +38,9 @@ export const update = mutation({
     updatedBy: v.string(),
   },
   handler: async (ctx, args) => {
+    validateSsid(args.ssid);
+    validateStringLength(args.password, "WiFi password", 63);
+
     // Deactivate all existing configs for this restaurant
     const existing = await ctx.db
       .query("wifiConfigs")

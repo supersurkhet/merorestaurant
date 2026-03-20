@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
+import { validateEmail, validateStringLength } from "./validation";
 
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -41,6 +42,8 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    validateStringLength(args.name, "Staff name", 100);
+    validateEmail(args.email);
     return ctx.db.insert("staff", { ...args, isActive: true });
   },
 });

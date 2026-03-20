@@ -7,10 +7,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors } from '../constants/colors';
 import { convex } from '../lib/convex';
-import { RestaurantProvider } from '../lib/restaurant-context';
-import { OfflineBanner } from '../components/ui/OfflineBanner';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { ToastProvider } from '../components/ui/Toast';
+import { OfflineBanner } from '../components/ui/OfflineBanner';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,44 +26,33 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
         <ConvexProvider client={convex}>
-          <RestaurantProvider>
-            <ToastProvider>
-              <OfflineBanner />
-              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: colors.background },
-                  animation: 'slide_from_right',
-                }}
-              >
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen
-                  name="scan/index"
-                  options={{
-                    presentation: 'fullScreenModal',
-                    animation: 'slide_from_bottom',
-                  }}
-                />
-                <Stack.Screen
-                  name="cart/index"
-                  options={{
-                    presentation: 'modal',
-                    animation: 'slide_from_bottom',
-                  }}
-                />
-                <Stack.Screen name="order/[id]" />
-                <Stack.Screen
-                  name="payment/index"
-                  options={{
-                    presentation: 'modal',
-                    animation: 'slide_from_bottom',
-                  }}
-                />
-              </Stack>
-            </ToastProvider>
-          </RestaurantProvider>
+          <ToastProvider>
+            <OfflineBanner />
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+                animation: 'slide_from_right',
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen
+                name="scan/index"
+                options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen
+                name="cart/index"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen name="order/[id]" />
+              <Stack.Screen
+                name="payment/index"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+            </Stack>
+          </ToastProvider>
         </ConvexProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>

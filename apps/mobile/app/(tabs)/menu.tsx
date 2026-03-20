@@ -17,25 +17,25 @@ import { MenuSkeleton } from '../../components/ui/Skeleton';
 import { CategoryPill } from '../../components/ui/CategoryPill';
 import { MenuItemCard } from '../../components/ui/MenuItemCard';
 import { CartFloatingButton } from '../../components/ui/CartFloatingButton';
-import { useRestaurant } from '../../lib/restaurant-context';
+import { useSessionStore } from '../../store/session';
 import { api } from '../../lib/convex-api';
-import type { Category, MenuItem } from '../../lib/convex-types';
+import type { Category, MenuItem, Id } from '../../lib/convex-types';
 
 export default function MenuScreen() {
   const colors = useThemeColor();
-  const { restaurantId } = useRestaurant();
+  const restaurantId = useSessionStore((s) => s.restaurantId);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Convex queries — return undefined while loading, null/[] when loaded
   const categories = useQuery(
     api.categories.listByRestaurant,
-    restaurantId ? { restaurantId } : 'skip',
+    restaurantId ? { restaurantId: restaurantId as Id<'restaurants'> } : 'skip',
   ) as Category[] | undefined;
 
   const menuItems = useQuery(
     api.menuItems.listByRestaurant,
-    restaurantId ? { restaurantId, onlyAvailable: true } : 'skip',
+    restaurantId ? { restaurantId: restaurantId as Id<'restaurants'>, onlyAvailable: true } : 'skip',
   ) as MenuItem[] | undefined;
 
   const isLoading = categories === undefined || menuItems === undefined;

@@ -4,8 +4,9 @@ import { useRouter } from 'expo-router';
 import { ClipboardList, ChevronRight, Clock, CheckCircle2 } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import { useRestaurant } from '../../lib/restaurant-context';
+import { useSessionStore } from '../../store/session';
 import { api } from '../../lib/convex-api';
+import type { Id } from '../../lib/convex-types';
 import { OrdersSkeleton } from '../../components/ui/Skeleton';
 import type { Order, OrderItem as ConvexOrderItem } from '../../lib/convex-types';
 
@@ -72,11 +73,11 @@ function OrderCard({ order }: { order: OrderWithItems }) {
 
 export default function OrdersScreen() {
   const colors = useThemeColor();
-  const { restaurantId } = useRestaurant();
+  const restaurantId = useSessionStore((s) => s.restaurantId);
 
   const orders = useQuery(
     api.orders.getByRestaurant,
-    restaurantId ? { restaurantId } : 'skip',
+    restaurantId ? { restaurantId: restaurantId as Id<'restaurants'> } : 'skip',
   ) as OrderWithItems[] | undefined;
 
   const isLoading = orders === undefined;

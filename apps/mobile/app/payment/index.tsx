@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useMutation } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import { useRestaurant } from '../../lib/restaurant-context';
+import { useSessionStore } from '../../store/session';
 import { useI18n } from '../../lib/i18n';
 import { api } from '../../lib/convex-api';
 import type { Id } from '../../lib/convex-types';
@@ -33,7 +33,7 @@ export default function PaymentScreen() {
   const colors = useThemeColor();
   const router = useRouter();
   const { t } = useI18n();
-  const { restaurantId } = useRestaurant();
+  const restaurantId = useSessionStore((s) => s.restaurantId);
   const { orderId, amount, orderNumber } = useLocalSearchParams<{
     orderId: string;
     amount: string;

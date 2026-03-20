@@ -12,12 +12,16 @@ export interface Restaurant {
   _id: Id<'restaurants'>;
   _creationTime: number;
   name: string;
+  nameNe?: string;
   slug: string;
+  description?: string;
+  descriptionNe?: string;
   address?: string;
   phone?: string;
-  timezone: string;
-  currency: string;
-  ownerId: string;
+  email?: string;
+  openingTime?: string;
+  closingTime?: string;
+  currency?: string;
   isActive: boolean;
 }
 

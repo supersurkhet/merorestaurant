@@ -27,7 +27,7 @@ import { useSessionStore } from '../../store/session';
 import { useI18n } from '../../lib/i18n';
 import { api } from '../../lib/convex-api';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
-import type { MenuItem, Id } from '../../lib/convex-types';
+import type { MenuItem, Restaurant, Id } from '../../lib/convex-types';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = SCREEN_W * 0.65;
@@ -43,6 +43,12 @@ export default function HomeScreen() {
   const session = useSessionStore();
   const addItem = useCartStore((s) => s.addItem);
   const cartCount = useCartStore((s) => s.itemCount());
+
+  // Browse all active restaurants (shown when no session)
+  const restaurants = useQuery(
+    api.restaurants.getActive,
+    !session.isActive ? {} : 'skip',
+  ) as Restaurant[] | undefined;
 
   // Only query menu if we have a session (after QR scan)
   const menuItems = useQuery(
@@ -240,15 +246,46 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        {/* No session — big empty state prompting QR scan */}
+        {/* No session — QR prompt + browse restaurants */}
         {!session.isActive && (
-          <Animated.View entering={FadeIn.delay(300).duration(500)} style={styles.emptyState}>
-            <Text style={{ fontSize: 64 }}>{'🍽️'}</Text>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Ready to dine?</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-              Scan the QR code at any partner restaurant table to view their menu, order food, and pay — all from your phone.
-            </Text>
-          </Animated.View>
+          <>
+            <Animated.View entering={FadeIn.delay(300).duration(500)} style={styles.emptyState}>
+              <Text style={{ fontSize: 64 }}>{'🍽️'}</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Ready to dine?</Text>
+              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+                Scan the QR code at any partner restaurant to view their menu, order food, and pay — all from your phone.
+              </Text>
+            </Animated.View>
+
+            {/* Browse restaurants near you */}
+            {restaurants && restaurants.length > 0 && (
+              <Animated.View entering={FadeInDown.delay(500).duration(400)} style={styles.restaurantSection}>
+                <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 20, marginBottom: 14 }]}>
+                  Restaurants Near You
+                </Text>
+                {restaurants.map((r: Restaurant) => (
+                  <Pressable
+                    key={r._id}
+                    style={[styles.restaurantCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  >
+                    <View style={[styles.restaurantAvatar, { backgroundColor: colors.primaryLight }]}>
+                      <Text style={{ fontSize: 24 }}>{'🏪'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.restaurantName, { color: colors.text }]}>{r.name}</Text>
+                      {r.nameNe && (
+                        <Text style={[styles.restaurantNameNe, { color: colors.textSecondary }]}>{r.nameNe}</Text>
+                      )}
+                      <Text style={[styles.restaurantAddr, { color: colors.textSecondary }]}>
+                        {r.address ?? 'Scan QR at this restaurant to order'}
+                      </Text>
+                    </View>
+                    <QrCode size={20} color={colors.textSecondary} />
+                  </Pressable>
+                ))}
+              </Animated.View>
+            )}
+          </>
         )}
 
         <View style={styles.footer}>
@@ -325,6 +362,12 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40, gap: 16 },
   emptyTitle: { fontSize: 24, fontWeight: '800' },
   emptyDesc: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  restaurantSection: { marginBottom: 20 },
+  restaurantCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, padding: 16, borderRadius: 16, borderWidth: 1, gap: 14, marginBottom: 10 },
+  restaurantAvatar: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  restaurantName: { fontSize: 16, fontWeight: '700' },
+  restaurantNameNe: { fontSize: 12, marginTop: 1 },
+  restaurantAddr: { fontSize: 13, marginTop: 4 },
   footer: { alignItems: 'center', paddingVertical: 20 },
   footerText: { fontSize: 13 },
 });

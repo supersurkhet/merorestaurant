@@ -17,6 +17,9 @@ export const api = {
     get: makeFunctionReference<'query', { id: Id<'restaurants'> }, any | null>(
       'restaurants:get',
     ),
+    getActive: makeFunctionReference<'query', Record<string, never>, any[]>(
+      'restaurants:getActive',
+    ),
   },
 
   categories: {

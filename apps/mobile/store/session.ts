@@ -1,9 +1,11 @@
 import { create } from 'zustand';
+import { useCartStore } from './cart';
 
 /**
  * Session store — holds the active restaurant context after QR scan.
  * This is the core of the QR-first multi-tenant flow:
  * No restaurant is selected until the user scans a QR code.
+ * Cart is automatically cleared when switching restaurants.
  */
 interface SessionStore {
   // Set after QR scan
@@ -51,7 +53,12 @@ export const useSessionStore = create<SessionStore>((set) => ({
   isActive: false,
   orderIds: [],
 
-  startSession: (params) =>
+  startSession: (params) => {
+    // Clear cart when switching to a different restaurant
+    const currentRestaurant = useSessionStore.getState().restaurantId;
+    if (currentRestaurant && currentRestaurant !== params.restaurantId) {
+      useCartStore.getState().clearCart();
+    }
     set({
       restaurantId: params.restaurantId,
       restaurantName: params.restaurantName,
@@ -63,7 +70,8 @@ export const useSessionStore = create<SessionStore>((set) => ({
       wifiPassword: params.wifiPassword ?? null,
       isActive: true,
       orderIds: [],
-    }),
+    });
+  },
 
   addOrderId: (orderId) =>
     set((state) => ({ orderIds: [...state.orderIds, orderId] })),

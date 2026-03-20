@@ -14,6 +14,10 @@
 	const theme = getTheme();
 
 	let devRole = $state('owner');
+	let isRedirecting = $state(false);
+
+	const WORKOS_CLIENT_ID = import.meta.env.VITE_WORKOS_CLIENT_ID ?? '';
+	const WORKOS_REDIRECT_URI = import.meta.env.VITE_WORKOS_REDIRECT_URI ?? 'http://localhost:5173/auth/callback';
 
 	const roleDescriptions: Record<string, string> = {
 		owner: 'Full access — register & manage restaurants',
@@ -31,9 +35,23 @@
 	});
 
 	function loginWithWorkOS() {
-		// In production: redirect to WorkOS AuthKit
-		// For now: dev login
-		devLogin();
+		if (!WORKOS_CLIENT_ID) {
+			// No WorkOS configured — fall back to dev login
+			devLogin();
+			return;
+		}
+		isRedirecting = true;
+		const authUrl = `https://api.workos.com/sso/authorize?client_id=${WORKOS_CLIENT_ID}&redirect_uri=${encodeURIComponent(WORKOS_REDIRECT_URI)}&response_type=code&provider=authkit`;
+		// In Tauri: open system browser; in web: redirect
+		try {
+			if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+				(window as any).__TAURI__.shell.open(authUrl);
+			} else {
+				window.location.href = authUrl;
+			}
+		} catch {
+			window.open(authUrl, '_blank');
+		}
 	}
 
 	function devLogin() {

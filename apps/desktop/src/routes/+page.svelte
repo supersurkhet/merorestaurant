@@ -162,9 +162,9 @@
 					</h2>
 					<div class="grid grid-cols-4 gap-2">
 						{#each data.tables as table}
-							{@const colorMap = { available: 'bg-success/20 border-success/40 text-success', occupied: 'bg-destructive/20 border-destructive/40 text-destructive', reserved: 'bg-warning/20 border-warning/40 text-warning', cleaning: 'bg-muted border-muted text-muted-foreground' }}
+							{@const colorMap: Record<string, string> = { available: 'bg-success/20 border-success/40 text-success', occupied: 'bg-destructive/20 border-destructive/40 text-destructive', reserved: 'bg-warning/20 border-warning/40 text-warning', cleaning: 'bg-muted border-muted text-muted-foreground' }}
 							<div
-								class={`flex h-10 w-full items-center justify-center rounded-lg border text-xs font-bold ${colorMap[table.status] ?? ''}`}
+								class={`flex h-10 w-full items-center justify-center rounded-lg border text-xs font-bold ${colorMap[table.status as string] ?? ''}`}
 								title="{table.status} - {table.seats} seats"
 							>
 								{table.number}

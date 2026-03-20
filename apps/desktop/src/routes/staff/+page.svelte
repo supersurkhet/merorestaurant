@@ -153,7 +153,7 @@
 					<div class="flex items-start gap-4">
 						<!-- Avatar -->
 						<div class="flex h-14 w-14 items-center justify-center rounded-full {config.bg} {config.color} font-bold text-lg shrink-0">
-							{member.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+							{member.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
 						</div>
 
 						<div class="flex-1 min-w-0 space-y-2">

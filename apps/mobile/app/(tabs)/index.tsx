@@ -22,6 +22,8 @@ import Animated, { FadeInDown, FadeInRight, FadeIn } from 'react-native-reanimat
 import * as Haptics from 'expo-haptics';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useCartStore } from '../../store/cart';
+import { useI18n } from '../../lib/i18n';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = SCREEN_W * 0.65;
@@ -135,6 +137,7 @@ function FeaturedCard({
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useThemeColor();
+  const { t } = useI18n();
   const addItem = useCartStore((s) => s.addItem);
   const cartCount = useCartStore((s) => s.itemCount());
 
@@ -146,7 +149,7 @@ export default function HomeScreen() {
           <View style={styles.heroTop}>
             <View>
               <Text style={[styles.heroGreeting, { color: colors.textSecondary }]}>
-                स्वागत छ · Welcome
+                {t.home.welcome}
               </Text>
               <Text style={[styles.heroTitle, { color: colors.text }]}>
                 मेरो रेस्टुरेन्ट
@@ -158,6 +161,7 @@ export default function HomeScreen() {
                 Surkhet, Nepal 🇳🇵
               </Text>
             </View>
+            <LanguageSwitcher />
           </View>
         </Animated.View>
 
@@ -174,10 +178,10 @@ export default function HomeScreen() {
               <QrCode size={44} color="#fff" strokeWidth={1.5} />
             </View>
             <View style={styles.scanText}>
-              <Text style={styles.scanTitle}>Scan to Order</Text>
-              <Text style={styles.scanTitleNe}>अर्डर गर्न स्क्यान गर्नुहोस्</Text>
+              <Text style={styles.scanTitle}>{t.home.scanQr}</Text>
+              <Text style={styles.scanTitleNe}>{t.home.scanQrDesc}</Text>
               <Text style={styles.scanDesc}>
-                Scan your table QR · Auto WiFi · Instant menu
+                QR Scan · WiFi · Menu
               </Text>
             </View>
             <ArrowRight size={22} color="#fff" style={{ opacity: 0.7 }} />

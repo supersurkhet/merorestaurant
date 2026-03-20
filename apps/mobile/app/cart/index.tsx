@@ -137,6 +137,7 @@ export default function CartScreen() {
     if (items.length === 0 || !restaurantId) return;
     setIsPlacing(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    console.log('[Cart] Placing order:', { restaurantId, tableId, items: items.length, customerName });
 
     try {
       const result = await placeOrder({
@@ -150,11 +151,13 @@ export default function CartScreen() {
         customerName: customerName || undefined,
       });
 
+      console.log('[Cart] Order placed:', result);
       clearCart();
       setIsPlacing(false);
       router.dismiss();
       router.push(`/order/${result.orderNumber}`);
     } catch (err) {
+      console.log('[Cart] Order failed:', err);
       setIsPlacing(false);
       const msg = err instanceof Error ? err.message : 'Failed to place order';
       Alert.alert('Order Failed', msg);

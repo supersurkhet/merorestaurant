@@ -105,7 +105,7 @@
 			<!-- Role preview -->
 			<div class="rounded-lg border p-3 flex items-center gap-3">
 				<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-					<selectedRoleIcon size={20} class="text-primary" />
+					<selectedRoleIcon size={20} class="text-primary"></selectedRoleIcon>
 				</div>
 				<div>
 					<p class="text-sm font-medium capitalize">{devRole}</p>

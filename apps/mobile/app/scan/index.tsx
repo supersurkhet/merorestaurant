@@ -93,6 +93,7 @@ export default function ScanScreen() {
       payload.qrCode = payload.tableId;
     }
 
+    console.log('[Scan] QR scanned:', payload);
     setScanResult(payload);
     setPhase('success');
 

@@ -127,17 +127,79 @@ const translations: Record<Locale, Record<string, string>> = {
 		'analytics.paymentMethods': 'Payment Methods',
 
 		// Fonepay
-		'fonepay.title': 'Fonepay QR',
+		'fonepay.title': 'Fonepay QR Payment',
 		'fonepay.generate': 'Generate Payment QR',
 		'fonepay.amount': 'Amount',
+		'fonepay.enterAmount': 'Enter Amount',
 		'fonepay.newPayment': 'New Payment',
 		'fonepay.confirmReceived': 'Confirm Received',
+		'fonepay.paymentReceived': 'Payment Received!',
 		'fonepay.recentPayments': 'Recent Fonepay Payments',
+		'fonepay.quickAmounts': 'Quick amounts',
+		'fonepay.merchantId': 'Merchant ID',
+		'fonepay.qrReady': 'Payment QR Ready',
+		'fonepay.scanInstruction': 'Show this QR to the customer to scan with their Fonepay-enabled banking app',
+		'fonepay.todayTotal': "Today's Fonepay Total",
+		'fonepay.waitingPayment': 'Waiting for payment...',
+
+		// Dashboard
+		'dashboard.welcome': 'Welcome back to Mero Restaurant, Surkhet',
+		'dashboard.activeOrders': 'Active Orders',
+		'dashboard.todayRevenue': "Today's Revenue",
+		'dashboard.availableTables': 'Available Tables',
+		'dashboard.activeStaff': 'Active Staff',
+		'dashboard.recentOrders': 'Recent Orders',
+		'dashboard.viewAll': 'View all',
+		'dashboard.kitchenStatus': 'Kitchen Status',
+		'dashboard.tableOverview': 'Table Overview',
+
+		// Urgency
+		'urgency.normal': 'On time',
+		'urgency.warning': 'Getting late',
+		'urgency.urgent': 'Urgent!',
+
+		// Spicy
+		'menu.spicy': 'Spicy',
+
+		// Error
+		'error.title': 'Something went wrong',
+		'error.description': 'An unexpected error occurred. Please try again.',
+		'error.retry': 'Try Again',
+
+		// Table actions
+		'table.addTable': 'Add Table',
+		'table.generateQr': 'Generate QR',
+		'table.allTables': 'All Tables',
+		'table.dragHint': 'Click to select table',
+
+		// Staff management
+		'staff.management': 'Staff Management',
+		'staff.addStaff': 'Add Staff',
+		'staff.noStaff': 'No staff found',
+		'staff.joined': 'Joined',
+		'staff.searchPlaceholder': 'Search staff by name or email...',
+		'staff.confirmToggleDesc': 'will no longer be able to access the system. You can reactivate them later.',
+		'staff.confirmActivateDesc': 'will regain access to the system.',
+
+		// WiFi extra
+		'wifi.encryption': 'Encryption',
+		'wifi.saveChanges': 'Save Changes',
+		'wifi.editSettings': 'Edit',
+		'wifi.scanToConnect': 'Customers scan this QR to auto-connect to WiFi',
+
+		// Orders extra
+		'order.orderQueue': 'Order Queue',
+		'order.allActive': 'All Active',
+		'order.active': 'active',
+		'order.takeaway': 'Takeaway',
+		'order.dineIn': 'Dine-in',
+		'order.note': 'Note',
 
 		// Common
 		'common.save': 'Save',
 		'common.cancel': 'Cancel',
 		'common.delete': 'Delete',
+		'common.confirm': 'Confirm',
 		'common.edit': 'Edit',
 		'common.search': 'Search',
 		'common.filter': 'Filter',
@@ -147,6 +209,8 @@ const translations: Record<Locale, Record<string, string>> = {
 		'common.print': 'Print',
 		'common.reset': 'Reset',
 		'common.all': 'All',
+		'common.error': 'Error',
+		'common.success': 'Success',
 
 		// Theme
 		'theme.light': 'Light Mode',
@@ -284,17 +348,79 @@ const translations: Record<Locale, Record<string, string>> = {
 		'analytics.paymentMethods': 'भुक्तानी विधिहरू',
 
 		// Fonepay
-		'fonepay.title': 'फोनपे QR',
+		'fonepay.title': 'फोनपे QR भुक्तानी',
 		'fonepay.generate': 'भुक्तानी QR बनाउनुहोस्',
 		'fonepay.amount': 'रकम',
+		'fonepay.enterAmount': 'रकम प्रविष्ट गर्नुहोस्',
 		'fonepay.newPayment': 'नयाँ भुक्तानी',
 		'fonepay.confirmReceived': 'प्राप्त पुष्टि',
+		'fonepay.paymentReceived': 'भुक्तानी प्राप्त भयो!',
 		'fonepay.recentPayments': 'हालका फोनपे भुक्तानीहरू',
+		'fonepay.quickAmounts': 'छिटो रकम',
+		'fonepay.merchantId': 'व्यापारी आईडी',
+		'fonepay.qrReady': 'भुक्तानी QR तयार',
+		'fonepay.scanInstruction': 'ग्राहकलाई यो QR उनीहरूको फोनपे-सक्षम बैंकिङ एपबाट स्क्यान गर्न देखाउनुहोस्',
+		'fonepay.todayTotal': 'आजको फोनपे जम्मा',
+		'fonepay.waitingPayment': 'भुक्तानीको पर्खाइमा...',
+
+		// Dashboard
+		'dashboard.welcome': 'मेरो रेस्टुरेन्ट, सुर्खेतमा फेरि स्वागत छ',
+		'dashboard.activeOrders': 'सक्रिय अर्डरहरू',
+		'dashboard.todayRevenue': 'आजको आम्दानी',
+		'dashboard.availableTables': 'उपलब्ध टेबलहरू',
+		'dashboard.activeStaff': 'सक्रिय कर्मचारी',
+		'dashboard.recentOrders': 'हालका अर्डरहरू',
+		'dashboard.viewAll': 'सबै हेर्नुहोस्',
+		'dashboard.kitchenStatus': 'भान्सा स्थिति',
+		'dashboard.tableOverview': 'टेबल अवलोकन',
+
+		// Urgency
+		'urgency.normal': 'समयमा',
+		'urgency.warning': 'ढिलो हुँदैछ',
+		'urgency.urgent': 'अत्यावश्यक!',
+
+		// Spicy
+		'menu.spicy': 'पिरो',
+
+		// Error
+		'error.title': 'केही गलत भयो',
+		'error.description': 'एक अनपेक्षित त्रुटि भयो। कृपया फेरि प्रयास गर्नुहोस्।',
+		'error.retry': 'फेरि प्रयास गर्नुहोस्',
+
+		// Table actions
+		'table.addTable': 'टेबल थप्नुहोस्',
+		'table.generateQr': 'QR बनाउनुहोस्',
+		'table.allTables': 'सबै टेबलहरू',
+		'table.dragHint': 'टेबल छान्न क्लिक गर्नुहोस्',
+
+		// Staff management
+		'staff.management': 'कर्मचारी व्यवस्थापन',
+		'staff.addStaff': 'कर्मचारी थप्नुहोस्',
+		'staff.noStaff': 'कर्मचारी भेटिएन',
+		'staff.joined': 'सामेल भएको',
+		'staff.searchPlaceholder': 'नाम वा इमेलबाट कर्मचारी खोज्नुहोस्...',
+		'staff.confirmToggleDesc': 'अब प्रणालीमा पहुँच गर्न सक्नेछैन। तपाईं पछि पुन: सक्रिय गर्न सक्नुहुन्छ।',
+		'staff.confirmActivateDesc': 'प्रणालीमा पुन: पहुँच पाउनेछ।',
+
+		// WiFi extra
+		'wifi.encryption': 'एन्क्रिप्सन',
+		'wifi.saveChanges': 'परिवर्तन सेभ गर्नुहोस्',
+		'wifi.editSettings': 'सम्पादन',
+		'wifi.scanToConnect': 'ग्राहकहरूले यो QR स्क्यान गरेर वाइफाइ जडान हुन सक्छन्',
+
+		// Orders extra
+		'order.orderQueue': 'अर्डर कतार',
+		'order.allActive': 'सबै सक्रिय',
+		'order.active': 'सक्रिय',
+		'order.takeaway': 'टेकअवे',
+		'order.dineIn': 'डाइन-इन',
+		'order.note': 'नोट',
 
 		// Common
 		'common.save': 'सेभ गर्नुहोस्',
 		'common.cancel': 'रद्द गर्नुहोस्',
 		'common.delete': 'मेटाउनुहोस्',
+		'common.confirm': 'पुष्टि गर्नुहोस्',
 		'common.edit': 'सम्पादन',
 		'common.search': 'खोज्नुहोस्',
 		'common.filter': 'फिल्टर',
@@ -304,6 +430,8 @@ const translations: Record<Locale, Record<string, string>> = {
 		'common.print': 'छाप्नुहोस्',
 		'common.reset': 'रिसेट',
 		'common.all': 'सबै',
+		'common.error': 'त्रुटि',
+		'common.success': 'सफल',
 
 		// Theme
 		'theme.light': 'उज्यालो मोड',

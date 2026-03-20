@@ -83,6 +83,17 @@ export const api = {
 	dashboard: {
 		getStats: ref('dashboard:getStats') as QueryRef
 	},
+	analytics: {
+		getDailyRevenue: ref('analytics:getDailyRevenue') as QueryRef,
+		getPopularItems: ref('analytics:getPopularItems') as QueryRef,
+		getOrdersByHour: ref('analytics:getOrdersByHour') as QueryRef,
+		getPaymentBreakdown: ref('analytics:getPaymentBreakdown') as QueryRef
+	},
+	notifications: {
+		getUnread: ref('notifications:getUnread') as QueryRef,
+		markRead: ref('notifications:markRead') as MutationRef,
+		markAllRead: ref('notifications:markAllRead') as MutationRef
+	},
 	auth: {
 		getStaffRoles: ref('auth:getStaffRoles') as QueryRef,
 		getAccessibleRestaurants: ref('auth:getAccessibleRestaurants') as QueryRef

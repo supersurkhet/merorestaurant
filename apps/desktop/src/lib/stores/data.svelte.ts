@@ -52,6 +52,33 @@ export function getData() {
 		() => (restaurant.id ? { restaurantId: restaurant.id as any } : 'skip')
 	);
 
+	// Analytics queries
+	const dailyRevenueQuery = useQuery(
+		api.analytics.getDailyRevenue,
+		() => (restaurant.id ? { restaurantId: restaurant.id as any } : 'skip')
+	);
+
+	const popularItemsQuery = useQuery(
+		api.analytics.getPopularItems,
+		() => (restaurant.id ? { restaurantId: restaurant.id as any } : 'skip')
+	);
+
+	const ordersByHourQuery = useQuery(
+		api.analytics.getOrdersByHour,
+		() => (restaurant.id ? { restaurantId: restaurant.id as any } : 'skip')
+	);
+
+	const paymentBreakdownQuery = useQuery(
+		api.analytics.getPaymentBreakdown,
+		() => (restaurant.id ? { restaurantId: restaurant.id as any } : 'skip')
+	);
+
+	// Notifications
+	const notificationsQuery = useQuery(
+		api.notifications.getUnread,
+		() => (restaurant.id ? { restaurantId: restaurant.id as any } : 'skip')
+	);
+
 	return {
 		// Data accessors
 		get categories() {
@@ -98,6 +125,28 @@ export function getData() {
 		},
 		get activeMenu() {
 			return menusQuery.data ?? null;
+		},
+
+		// Analytics
+		get dailyRevenue() {
+			return dailyRevenueQuery.data ?? null;
+		},
+		get popularItems() {
+			return (popularItemsQuery.data ?? []) as any[];
+		},
+		get ordersByHour() {
+			return (ordersByHourQuery.data ?? []) as any[];
+		},
+		get paymentBreakdown() {
+			return (paymentBreakdownQuery.data ?? []) as any[];
+		},
+
+		// Notifications
+		get notifications() {
+			return (notificationsQuery.data ?? []) as any[];
+		},
+		get unreadNotificationCount() {
+			return this.notifications.length;
 		},
 
 		// Loading states
@@ -281,6 +330,18 @@ export function getData() {
 				encryptionType: encryptionType as any,
 				updatedBy: 'admin'
 			} as any);
+		},
+
+		// Notification actions
+		async markNotificationRead(id: string) {
+			await client.mutation(api.notifications.markRead, { id: id as any });
+		},
+
+		async markAllNotificationsRead() {
+			if (!restaurant.id) return;
+			await client.mutation(api.notifications.markAllRead, {
+				restaurantId: restaurant.id as any
+			});
 		},
 
 		// Payment actions

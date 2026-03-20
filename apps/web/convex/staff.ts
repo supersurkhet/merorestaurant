@@ -20,7 +20,6 @@ export const getByWorkosId = query({
 
 export const invite = mutation({
   args: {
-    workosUserId: v.string(), // caller
     restaurantId: v.id("restaurants"),
     targetWorkosUserId: v.string(),
     name: v.string(),
@@ -28,7 +27,7 @@ export const invite = mutation({
     role: v.union(v.literal("owner"), v.literal("manager"), v.literal("waiter"), v.literal("kitchen"), v.literal("cashier")),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, args.workosUserId, args.restaurantId, ["owner", "manager"]);
+    await requireRole(ctx, args.restaurantId, ["owner", "manager"]);
     validateStringLength(args.name, "Staff name", 100);
     validateEmail(args.email);
 
@@ -43,19 +42,14 @@ export const invite = mutation({
     }
 
     return ctx.db.insert("staff", {
-      restaurantId: args.restaurantId,
-      workosUserId: args.targetWorkosUserId,
-      name: args.name,
-      email: args.email,
-      role: args.role,
-      isActive: true,
+      restaurantId: args.restaurantId, workosUserId: args.targetWorkosUserId,
+      name: args.name, email: args.email, role: args.role, isActive: true,
     });
   },
 });
 
 export const update = mutation({
   args: {
-    workosUserId: v.string(),
     restaurantId: v.id("restaurants"),
     id: v.id("staff"),
     name: v.optional(v.string()),
@@ -63,22 +57,20 @@ export const update = mutation({
     role: v.optional(v.union(v.literal("owner"), v.literal("manager"), v.literal("waiter"), v.literal("kitchen"), v.literal("cashier"))),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, args.workosUserId, args.restaurantId, ["owner", "manager"]);
+    await requireRole(ctx, args.restaurantId, ["owner", "manager"]);
     if (args.name) validateStringLength(args.name, "Staff name", 100);
     if (args.email) validateEmail(args.email);
-    const { id, workosUserId, restaurantId, ...fields } = args;
+    const { id, restaurantId, ...fields } = args;
     const updates: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(fields)) {
-      if (val !== undefined) updates[key] = val;
-    }
+    for (const [key, val] of Object.entries(fields)) { if (val !== undefined) updates[key] = val; }
     await ctx.db.patch(id, updates);
   },
 });
 
 export const toggleActive = mutation({
-  args: { workosUserId: v.string(), restaurantId: v.id("restaurants"), id: v.id("staff") },
+  args: { restaurantId: v.id("restaurants"), id: v.id("staff") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, args.workosUserId, args.restaurantId, ["owner", "manager"]);
+    await requireRole(ctx, args.restaurantId, ["owner", "manager"]);
     const member = await ctx.db.get(args.id);
     if (!member) throwLocalizedError("staff.not_found");
     await ctx.db.patch(args.id, { isActive: !member.isActive });
@@ -86,9 +78,9 @@ export const toggleActive = mutation({
 });
 
 export const removeFromRestaurant = mutation({
-  args: { workosUserId: v.string(), restaurantId: v.id("restaurants"), id: v.id("staff") },
+  args: { restaurantId: v.id("restaurants"), id: v.id("staff") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, args.workosUserId, args.restaurantId, ["owner"]);
+    await requireRole(ctx, args.restaurantId, ["owner"]);
     const member = await ctx.db.get(args.id);
     if (!member) throwLocalizedError("staff.not_found");
     if (member.role === "owner") throw new Error("Cannot remove the restaurant owner.");

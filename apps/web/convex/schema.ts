@@ -2,18 +2,45 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Platform-level user accounts (restaurant owners)
+  users: defineTable({
+    workosUserId: v.string(),
+    name: v.string(),
+    email: v.string(),
+    avatarUrl: v.optional(v.string()),
+    isPlatformAdmin: v.boolean(),
+  })
+    .index("by_workos_user", ["workosUserId"])
+    .index("by_email", ["email"]),
+
   restaurants: defineTable({
     name: v.string(),
     slug: v.string(),
     address: v.optional(v.string()),
     phone: v.optional(v.string()),
+    city: v.optional(v.string()),
     timezone: v.string(),
     currency: v.string(),
+    taxRate: v.number(), // e.g. 0.13 for 13% VAT
     isActive: v.boolean(),
     ownerId: v.string(), // WorkOS user ID
+    subscriptionTier: v.union(
+      v.literal("free"),
+      v.literal("starter"),
+      v.literal("pro"),
+      v.literal("enterprise"),
+    ),
+    onboardingStatus: v.union(
+      v.literal("pending"),
+      v.literal("menu_setup"),
+      v.literal("table_setup"),
+      v.literal("complete"),
+    ),
   })
     .index("by_slug", ["slug"])
-    .index("by_owner", ["ownerId"]),
+    .index("by_owner", ["ownerId"])
+    .index("by_city", ["city"])
+    .index("by_subscription_tier", ["subscriptionTier"]),
 
   staff: defineTable({
     restaurantId: v.id("restaurants"),
@@ -36,7 +63,7 @@ export default defineSchema({
   categories: defineTable({
     restaurantId: v.id("restaurants"),
     name: v.string(),
-    nameNe: v.optional(v.string()), // Nepali name
+    nameNe: v.optional(v.string()),
     sortOrder: v.number(),
     isActive: v.boolean(),
   }).index("by_restaurant", ["restaurantId"]),
@@ -52,10 +79,10 @@ export default defineSchema({
     menuId: v.id("menus"),
     categoryId: v.id("categories"),
     name: v.string(),
-    nameNe: v.optional(v.string()), // Nepali name
+    nameNe: v.optional(v.string()),
     description: v.optional(v.string()),
-    price: v.number(), // in NPR (e.g. 250 = Rs 250)
-    imageStorageId: v.optional(v.id("_storage")), // Convex file storage
+    price: v.number(),
+    imageStorageId: v.optional(v.id("_storage")),
     isVeg: v.boolean(),
     isAvailable: v.boolean(),
     sortOrder: v.number(),
@@ -70,7 +97,7 @@ export default defineSchema({
     number: v.number(),
     label: v.optional(v.string()),
     seats: v.number(),
-    qrCode: v.string(), // unique identifier for QR scan, e.g. "mero-surkhet-t1"
+    qrCode: v.string(),
     status: v.union(
       v.literal("available"),
       v.literal("occupied"),
@@ -85,8 +112,8 @@ export default defineSchema({
 
   orders: defineTable({
     restaurantId: v.id("restaurants"),
-    tableId: v.optional(v.id("tables")), // optional for takeaway
-    orderNumber: v.string(), // human-readable e.g. "ORD-0042"
+    tableId: v.optional(v.id("tables")),
+    orderNumber: v.string(),
     status: v.union(
       v.literal("pending"),
       v.literal("confirmed"),
@@ -102,8 +129,7 @@ export default defineSchema({
     subtotal: v.number(),
     tax: v.number(),
     total: v.number(),
-    createdBy: v.optional(v.string()), // staff workosUserId or "customer"
-    // Status transition timestamps
+    createdBy: v.optional(v.string()),
     confirmedAt: v.optional(v.number()),
     preparingAt: v.optional(v.number()),
     readyAt: v.optional(v.number()),
@@ -119,7 +145,7 @@ export default defineSchema({
   orderItems: defineTable({
     orderId: v.id("orders"),
     menuItemId: v.id("menuItems"),
-    name: v.string(), // denormalized snapshot
+    name: v.string(),
     quantity: v.number(),
     unitPrice: v.number(),
     totalPrice: v.number(),
@@ -176,9 +202,9 @@ export default defineSchema({
     .index("by_restaurant_unread", ["restaurantId", "isRead"]),
 
   rateLimits: defineTable({
-    key: v.string(), // e.g. "placeOrder:restaurantId" or "createPayment:ip"
+    key: v.string(),
     count: v.number(),
-    windowStart: v.number(), // timestamp of current window start
+    windowStart: v.number(),
   }).index("by_key", ["key"]),
 
   wifiConfigs: defineTable({

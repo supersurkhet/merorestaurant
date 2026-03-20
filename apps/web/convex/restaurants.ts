@@ -15,6 +15,8 @@ export const register = mutation({
     ownerId: v.string(), // WorkOS user ID
     ownerName: v.string(),
     ownerEmail: v.string(),
+    city: v.optional(v.string()),
+    taxRate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     validateSlug(args.slug);
@@ -29,15 +31,33 @@ export const register = mutation({
       throwLocalizedError("restaurant.slug_taken", { slug: args.slug });
     }
 
+    // Upsert platform user
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_workos_user", (q) => q.eq("workosUserId", args.ownerId))
+      .unique();
+    if (!existingUser) {
+      await ctx.db.insert("users", {
+        workosUserId: args.ownerId,
+        name: args.ownerName,
+        email: args.ownerEmail,
+        isPlatformAdmin: false,
+      });
+    }
+
     const restaurantId = await ctx.db.insert("restaurants", {
       name: args.name,
       slug: args.slug,
       address: args.address,
       phone: args.phone,
+      city: args.city,
       timezone: args.timezone,
       currency: args.currency,
+      taxRate: args.taxRate ?? 0.13,
       isActive: true,
       ownerId: args.ownerId,
+      subscriptionTier: "free",
+      onboardingStatus: "pending",
     });
 
     // Create the owner as staff

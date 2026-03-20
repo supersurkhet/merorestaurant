@@ -12,17 +12,37 @@ export const seedDatabase = internalMutation({
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // RESTAURANT 1: Mero Restaurant, Surkhet
+    // Platform users
+    // ═══════════════════════════════════════════════════════════════════
+    await ctx.db.insert("users", {
+      workosUserId: "workos-rajesh",
+      name: "Rajesh Sharma",
+      email: "rajesh@merorestaurant.com",
+      isPlatformAdmin: true,
+    });
+    await ctx.db.insert("users", {
+      workosUserId: "workos-anita",
+      name: "Anita Rana",
+      email: "anita@himalayanbites.com",
+      isPlatformAdmin: false,
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // RESTAURANT 1: Mero Restaurant, Surkhet (Pro tier)
     // ═══════════════════════════════════════════════════════════════════
     const r1 = await ctx.db.insert("restaurants", {
       name: "Mero Restaurant",
       slug: "mero-surkhet",
       address: "Birendranagar, Surkhet, Nepal",
       phone: "083-520123",
+      city: "Surkhet",
       timezone: "Asia/Kathmandu",
       currency: "NPR",
+      taxRate: 0.13,
       isActive: true,
       ownerId: "workos-rajesh",
+      subscriptionTier: "pro",
+      onboardingStatus: "complete",
     });
 
     const menu1 = await ctx.db.insert("menus", {

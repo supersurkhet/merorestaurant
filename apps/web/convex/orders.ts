@@ -11,7 +11,7 @@ import {
   validateOrderItems,
 } from "./validation";
 
-const TAX_RATE = 0.13;
+const DEFAULT_TAX_RATE = 0.13;
 const NEPAL_OFFSET_MS = (5 * 60 + 45) * 60 * 1000;
 
 function generateOrderNumber(existingToday: number): string {
@@ -58,11 +58,12 @@ export const placeOrder = mutation({
       validateQuantity(item.quantity);
     }
 
-    // Verify restaurant exists
+    // Verify restaurant exists and get tax rate
     const restaurant = await ctx.db.get(args.restaurantId);
     if (!restaurant || !restaurant.isActive) {
       throwLocalizedError("restaurant.not_found");
     }
+    const taxRate = restaurant.taxRate ?? DEFAULT_TAX_RATE;
 
     // Verify table belongs to this restaurant if provided
     if (args.tableId) {
@@ -116,7 +117,7 @@ export const placeOrder = mutation({
       });
     }
 
-    const tax = Math.round(subtotal * TAX_RATE);
+    const tax = Math.round(subtotal * taxRate);
     const total = subtotal + tax;
 
     const orderId = await ctx.db.insert("orders", {

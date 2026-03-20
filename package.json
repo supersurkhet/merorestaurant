@@ -1,0 +1,18 @@
+{
+  "name": "merorestaurant",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "check": "turbo check"
+  },
+  "devDependencies": {
+    "convex": "^1.34.0",
+    "convex-svelte": "^0.0.12",
+    "turbo": "^2.8.20",
+    "web": "workspace:*"
+  }
+}

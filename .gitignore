@@ -1,0 +1,12 @@
+node_modules/
+.turbo/
+dist/
+build/
+.svelte-kit/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+bun.lock
+target/

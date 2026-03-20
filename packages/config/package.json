@@ -1,0 +1,7 @@
+{
+  "name": "@merorestaurant/config",
+  "private": true,
+  "exports": {
+    "./tsconfig": "./tsconfig.base.json"
+  }
+}

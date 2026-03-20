@@ -2,6 +2,7 @@
 	import '$lib/../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import ConvexProvider from '$lib/components/ConvexProvider.svelte';
+	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import { getTheme } from '$lib/stores/theme.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getRestaurant } from '$lib/stores/restaurant.svelte';
@@ -62,12 +63,10 @@
 
 <ConvexProvider>
 	{#if isAuthPage}
-		{@render children()}
+		<ErrorBoundary>
+			{@render children()}
+		</ErrorBoundary>
 	{:else if !auth.isAuthenticated && !auth.isLoading}
-		<!-- Redirect to auth handled by AuthGuard in individual pages, but also catch here -->
-		<script>
-			// This block won't execute in SSR, redirect handled by AuthGuard
-		</script>
 		{@render children()}
 	{:else}
 		<div class="flex h-screen overflow-hidden bg-background">
@@ -81,7 +80,9 @@
 						</div>
 					</div>
 				{:else}
-					{@render children()}
+					<ErrorBoundary>
+						{@render children()}
+					</ErrorBoundary>
 				{/if}
 			</main>
 		</div>

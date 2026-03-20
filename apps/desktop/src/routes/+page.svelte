@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/card.svelte';
 	import Badge from '$lib/components/ui/badge.svelte';
+	import Skeleton from '$lib/components/Skeleton.svelte';
 	import { getData } from '$lib/stores/data.svelte';
 	import { getI18n } from '$lib/stores/i18n.svelte';
 	import { formatCurrency, timeAgo } from '$lib/utils';
@@ -19,28 +20,28 @@
 
 	const stats = $derived([
 		{
-			label: 'Active Orders',
+			label: i18n.t('dashboard.activeOrders'),
 			value: data.activeOrders.length,
 			icon: ShoppingBag,
 			color: 'text-blue-500',
 			bg: 'bg-blue-500/10'
 		},
 		{
-			label: "Today's Revenue",
+			label: i18n.t('dashboard.todayRevenue'),
 			value: formatCurrency(data.todayRevenue),
 			icon: DollarSign,
 			color: 'text-emerald-500',
 			bg: 'bg-emerald-500/10'
 		},
 		{
-			label: 'Available Tables',
+			label: i18n.t('dashboard.availableTables'),
 			value: `${data.availableTableCount}/${data.tables.length}`,
 			icon: Table2,
 			color: 'text-amber-500',
 			bg: 'bg-amber-500/10'
 		},
 		{
-			label: 'Active Staff',
+			label: i18n.t('dashboard.activeStaff'),
 			value: data.staff.filter((s: any) => s.isActive).length,
 			icon: Users,
 			color: 'text-purple-500',
@@ -62,12 +63,54 @@
 <div class="p-8 space-y-8">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">{i18n.t('nav.dashboard')}</h1>
-		<p class="text-muted-foreground mt-1">Welcome back to Mero Restaurant, Surkhet</p>
+		<p class="text-muted-foreground mt-1">{i18n.t('dashboard.welcome')}</p>
 	</div>
 
 	{#if data.isLoading}
-		<div class="flex items-center justify-center py-20">
-			<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+		<!-- Loading skeletons for dashboard widgets -->
+		<div class="grid grid-cols-4 gap-4">
+			{#each Array(4) as _}
+				<Card class="p-5">
+					<div class="flex items-center justify-between">
+						<div class="space-y-3 flex-1">
+							<Skeleton variant="text" class="w-24 h-3" />
+							<Skeleton variant="text" class="w-16 h-7" />
+						</div>
+						<Skeleton variant="avatar" class="h-12 w-12 rounded-xl" />
+					</div>
+				</Card>
+			{/each}
+		</div>
+		<div class="grid grid-cols-3 gap-6">
+			<div class="col-span-2">
+				<Card class="p-6 space-y-4">
+					<Skeleton variant="text" class="w-32 h-5" />
+					{#each Array(4) as _}
+						<div class="flex items-center gap-4 rounded-lg border p-4">
+							<Skeleton variant="avatar" class="h-10 w-10 rounded-lg" />
+							<div class="flex-1 space-y-2">
+								<Skeleton variant="text" class="w-48" />
+								<Skeleton variant="text" class="w-24 h-3" />
+							</div>
+							<Skeleton variant="text" class="w-20" />
+						</div>
+					{/each}
+				</Card>
+			</div>
+			<div class="space-y-4">
+				<Card class="p-6 space-y-3">
+					<Skeleton variant="text" class="w-28 h-5" />
+					<Skeleton variant="text" count={3} />
+				</Card>
+				<Card class="p-6 space-y-3">
+					<Skeleton variant="text" class="w-28 h-5" />
+					<div class="grid grid-cols-4 gap-2">
+						{#each Array(8) as _}
+							<Skeleton variant="text" class="h-10 rounded-lg" />
+						{/each}
+					</div>
+				</Card>
+			</div>
 		</div>
 	{:else}
 		<!-- Stats Grid -->
@@ -94,10 +137,10 @@
 					<div class="flex items-center justify-between mb-4">
 						<h2 class="text-lg font-semibold flex items-center gap-2">
 							<Clock size={20} />
-							Recent Orders
+							{i18n.t('dashboard.recentOrders')}
 						</h2>
 						<a href="/kitchen" class="text-sm text-primary hover:underline flex items-center gap-1">
-							View all <ArrowUpRight size={14} />
+							{i18n.t('dashboard.viewAll')} <ArrowUpRight size={14} />
 						</a>
 					</div>
 					<div class="space-y-3">
@@ -126,7 +169,7 @@
 							</div>
 						{/each}
 						{#if data.orders.length === 0}
-							<p class="text-sm text-muted-foreground text-center py-8">No orders yet</p>
+							<p class="text-sm text-muted-foreground text-center py-8">{i18n.t('common.noData')}</p>
 						{/if}
 					</div>
 				</Card>
@@ -137,7 +180,7 @@
 				<Card class="p-6">
 					<h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
 						<ChefHat size={20} />
-						Kitchen Status
+						{i18n.t('dashboard.kitchenStatus')}
 					</h2>
 					<div class="space-y-3">
 						<div class="flex items-center justify-between">
@@ -158,7 +201,7 @@
 				<Card class="p-6">
 					<h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
 						<Table2 size={20} />
-						Table Overview
+						{i18n.t('dashboard.tableOverview')}
 					</h2>
 					<div class="grid grid-cols-4 gap-2">
 						{#each data.tables as table}

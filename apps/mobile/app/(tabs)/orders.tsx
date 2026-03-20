@@ -1,4 +1,4 @@
-import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ClipboardList, ChevronRight, Clock, CheckCircle2 } from 'lucide-react-native';
@@ -6,6 +6,7 @@ import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useRestaurant } from '../../lib/restaurant-context';
 import { api } from '../../lib/convex-api';
+import { OrdersSkeleton } from '../../components/ui/Skeleton';
 import type { Order, OrderItem as ConvexOrderItem } from '../../lib/convex-types';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -90,9 +91,7 @@ export default function OrdersScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <OrdersSkeleton />
       ) : orders && orders.length > 0 ? (
         <FlatList
           data={orders}

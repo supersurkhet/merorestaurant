@@ -6,12 +6,14 @@ import {
   FlatList,
   TextInput,
   StyleSheet,
-  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { ErrorBoundary } from '../../components/ui/ErrorBoundary';
+import { MenuSkeleton } from '../../components/ui/Skeleton';
 import { CategoryPill } from '../../components/ui/CategoryPill';
 import { MenuItemCard } from '../../components/ui/MenuItemCard';
 import { CartFloatingButton } from '../../components/ui/CartFloatingButton';
@@ -99,12 +101,7 @@ export default function MenuScreen() {
 
       {/* Menu items */}
       {isLoading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Loading menu...
-          </Text>
-        </View>
+        <MenuSkeleton />
       ) : (
         <FlatList
           data={filteredItems}

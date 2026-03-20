@@ -178,17 +178,15 @@
 		</div>
 		<div class="flex items-center gap-3">
 			<!-- Auto-refresh timer -->
-			<button
-				class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors"
+			<Button variant="outline" size="sm"
 				onclick={refreshNow}
 			>
 				<RefreshCw size={12} />
 				Updated {secondsSinceRefresh}s ago
-			</button>
+			</Button>
 
 			<!-- Sound toggle -->
-			<button
-				class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors {soundEnabled ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted-foreground'}"
+			<Button variant="outline" size="sm"
 				onclick={() => {
 					soundEnabled = !soundEnabled;
 					if (soundEnabled) playNotification();
@@ -200,7 +198,7 @@
 					<BellOff size={14} />
 				{/if}
 				{soundEnabled ? 'Sound On' : 'Sound Off'}
-			</button>
+			</Button>
 
 			<Badge variant="default">{data.activeOrders.length} active</Badge>
 		</div>

@@ -166,7 +166,7 @@
 				{#each filteredTables as table, idx (table._id)}
 					{@const style = statusStyle[table.status] ?? statusStyle.available}
 					{@const pos = gridPosition(idx)}
-					<button
+					<Button variant="ghost"
 						class="absolute flex flex-col items-center justify-center border-2 transition-all hover:scale-105 hover:shadow-xl {tableShape(table.capacity)} {style.fill} {style.border}"
 						style="left: {pos.x}px; top: {pos.y}px;"
 						onclick={() => openTableDetails(table)}
@@ -180,7 +180,7 @@
 								{table.label}
 							</span>
 						{/if}
-					</button>
+					</Button>
 				{/each}
 			</div>
 		</Card>

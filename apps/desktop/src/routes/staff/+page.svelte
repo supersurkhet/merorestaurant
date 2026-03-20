@@ -101,8 +101,8 @@
 		{#each allRoles as role}
 			{@const config = roleConfig[role]}
 			{@const count = data.staff.filter((s) => s.role === role && s.isActive).length}
-			<button
-				class="text-left transition-all {roleFilter === role ? 'ring-2 ring-primary' : ''}"
+			<Button variant="ghost"
+				class="text-left w-full p-0 h-auto transition-all {roleFilter === role ? 'ring-2 ring-primary' : ''}" 
 				onclick={() => (roleFilter = roleFilter === role ? 'all' : role)}
 			>
 				<Card class="p-4 hover:shadow-md transition-shadow">
@@ -116,7 +116,7 @@
 						</div>
 					</div>
 				</Card>
-			</button>
+			</Button>
 		{/each}
 	</div>
 

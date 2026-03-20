@@ -126,16 +126,13 @@
 								<span class="font-mono text-sm">
 									{showPassword ? data.wifiConfig.password : '••••••••••'}
 								</span>
-								<button
-									class="text-muted-foreground hover:text-foreground transition-colors"
-									onclick={() => (showPassword = !showPassword)}
-								>
+								<Button size="icon" variant="ghost" class="h-7 w-7" onclick={() => (showPassword = !showPassword)}>
 									{#if showPassword}
 										<EyeOff size={14} />
 									{:else}
 										<Eye size={14} />
 									{/if}
-								</button>
+								</Button>
 							</div>
 						</div>
 						<div class="flex items-center justify-between">
@@ -166,8 +163,8 @@
 								bind:value={password}
 								placeholder="WiFi password"
 							/>
-							<button
-								class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+							<Button size="icon" variant="ghost"
+								class="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
 								onclick={() => (showPassword = !showPassword)}
 							>
 								{#if showPassword}
@@ -175,7 +172,7 @@
 								{:else}
 									<Eye size={16} />
 								{/if}
-							</button>
+							</Button>
 						</div>
 					</div>
 

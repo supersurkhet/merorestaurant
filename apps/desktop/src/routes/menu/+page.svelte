@@ -295,11 +295,11 @@
 		</div>
 		<div>
 			<label class="text-sm font-medium" for="image">Image</label>
-			<input
+			<Input
 				id="image"
 				type="file"
 				accept="image/*"
-				class="mt-1 block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+				class="mt-1 file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
 				onchange={(e) => { imageFile = (e.target as HTMLInputElement).files?.[0] ?? null; }}
 			/>
 		</div>

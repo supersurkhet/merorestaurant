@@ -5,6 +5,7 @@
 	import Input from '$lib/components/ui/input.svelte';
 	import Textarea from '$lib/components/ui/textarea.svelte';
 	import Select from '$lib/components/ui/select.svelte';
+	import Switch from '$lib/components/ui/switch.svelte';
 	import LocationPicker from '$lib/components/LocationPicker.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getRestaurant } from '$lib/stores/restaurant.svelte';
@@ -291,8 +292,8 @@
 							<div class="flex gap-2 items-end">
 								<Input bind:value={newItem.name} placeholder="Item name" class="flex-1" />
 								<Input bind:value={newItem.price} type="number" placeholder="Price" class="w-24" />
-								<label class="flex items-center gap-1 text-xs whitespace-nowrap">
-									<input type="checkbox" bind:checked={newItem.isVeg} /> Veg
+								<label class="flex items-center gap-1.5 text-xs whitespace-nowrap">
+									<Switch bind:checked={newItem.isVeg} /> Veg
 								</label>
 								<Button size="sm" onclick={addItem} disabled={!newItem.name}>
 									<Plus size={14} />

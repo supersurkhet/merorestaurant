@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { cn } from '$lib/utils';
+	import Button from '$lib/components/ui/button.svelte';
 	import { getI18n } from '$lib/stores/i18n.svelte';
 	import { getTheme } from '$lib/stores/theme.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
@@ -69,7 +70,7 @@
 <aside class="flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
 	<!-- Restaurant header with switcher -->
 	<div class="border-b">
-		<button
+		<Button variant="ghost"
 			class="flex w-full items-center gap-3 px-5 py-4 hover:bg-accent/50 transition-colors"
 			onclick={() => (showSwitcher = !showSwitcher)}
 			data-tauri-drag-region
@@ -84,27 +85,27 @@
 				</p>
 			</div>
 			<ChevronsUpDown size={14} class="text-muted-foreground shrink-0" />
-		</button>
+		</Button>
 
 		<!-- Restaurant switcher dropdown -->
 		{#if showSwitcher}
 			<div class="border-t bg-card p-2 space-y-1 max-h-48 overflow-y-auto">
 				{#each auth.allRestaurants as r}
-					<button
+					<Button variant="ghost"
 						class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors {r._id === restaurant.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}"
 						onclick={() => switchRestaurant(r)}
 					>
 						<Building2 size={14} />
 						<span class="truncate">{r.name}</span>
-					</button>
+					</Button>
 				{/each}
-				<button
+				<Button variant="ghost"
 					class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-primary hover:bg-accent transition-colors border-t mt-1 pt-2"
 					onclick={() => { showSwitcher = false; goto('/onboard'); }}
 				>
 					<Building2 size={14} />
 					Register New Restaurant
-				</button>
+				</Button>
 			</div>
 		{/if}
 	</div>
@@ -153,14 +154,14 @@
 
 	<!-- Bottom controls -->
 	<div class="border-t p-3 space-y-1">
-		<button
+		<Button variant="ghost"
 			class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
 			onclick={() => i18n.toggleLocale()}
 		>
 			<Languages size={18} />
 			<span>{i18n.locale === 'en' ? 'नेपाली' : 'English'}</span>
-		</button>
-		<button
+		</Button>
+		<Button variant="ghost"
 			class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
 			onclick={() => theme.toggle()}
 		>
@@ -169,12 +170,12 @@
 			{:else}
 				<Moon size={18} /><span>{i18n.t('theme.dark')}</span>
 			{/if}
-		</button>
-		<button
+		</Button>
+		<Button variant="ghost"
 			class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
 			onclick={handleLogout}
 		>
 			<LogOut size={18} /><span>{i18n.t('auth.signOut')}</span>
-		</button>
+		</Button>
 	</div>
 </aside>

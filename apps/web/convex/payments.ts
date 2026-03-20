@@ -1,30 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-export const listByOrder = query({
-  args: { orderId: v.id("orders") },
-  handler: async (ctx, args) => {
-    return ctx.db
-      .query("payments")
-      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
-      .collect();
-  },
-});
-
-export const listByRestaurant = query({
-  args: { restaurantId: v.id("restaurants") },
-  handler: async (ctx, args) => {
-    return ctx.db
-      .query("payments")
-      .withIndex("by_restaurant", (q) =>
-        q.eq("restaurantId", args.restaurantId),
-      )
-      .order("desc")
-      .collect();
-  },
-});
-
-export const record = mutation({
+export const createPayment = mutation({
   args: {
     restaurantId: v.id("restaurants"),
     orderId: v.id("orders"),
@@ -42,47 +19,67 @@ export const record = mutation({
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
-
-    const paymentId = await ctx.db.insert("payments", {
-      ...args,
-      status: "pending",
-    });
-
-    return paymentId;
+    return ctx.db.insert("payments", { ...args, status: "pending" });
   },
 });
 
-export const complete = mutation({
+export const getByOrder = query({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("payments")
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
+      .collect();
+  },
+});
+
+export const updateStatus = mutation({
   args: {
     id: v.id("payments"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("refunded"),
+    ),
     externalRef: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const payment = await ctx.db.get(args.id);
     if (!payment) throw new Error("Payment not found");
 
-    await ctx.db.patch(args.id, {
-      status: "completed",
-      externalRef: args.externalRef ?? payment.externalRef,
-    });
+    const patch: Record<string, unknown> = { status: args.status };
+    if (args.externalRef) patch.externalRef = args.externalRef;
+    await ctx.db.patch(args.id, patch);
 
-    // Mark order as completed
-    await ctx.db.patch(payment.orderId, { status: "completed" });
-
-    // Free the table
-    const order = await ctx.db.get(payment.orderId);
-    if (order) {
-      await ctx.db.patch(order.tableId, {
-        status: "cleaning",
-        currentOrderId: undefined,
-      });
+    // On completion, mark order completed and free table
+    if (args.status === "completed") {
+      const order = await ctx.db.get(payment.orderId);
+      if (order) {
+        await ctx.db.patch(payment.orderId, {
+          status: "completed",
+          completedAt: Date.now(),
+        });
+        if (order.tableId) {
+          await ctx.db.patch(order.tableId, {
+            status: "cleaning",
+            currentOrderId: undefined,
+          });
+        }
+      }
     }
   },
 });
 
-export const refund = mutation({
-  args: { id: v.id("payments") },
+export const listByRestaurant = query({
+  args: { restaurantId: v.id("restaurants") },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { status: "refunded" });
+    return ctx.db
+      .query("payments")
+      .withIndex("by_restaurant", (q) =>
+        q.eq("restaurantId", args.restaurantId),
+      )
+      .order("desc")
+      .collect();
   },
 });

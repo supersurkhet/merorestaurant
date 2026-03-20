@@ -4,13 +4,15 @@ import { mutation, query } from "./_generated/server";
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
   handler: async (ctx, args) => {
-    const categories = await ctx.db
+    const all = await ctx.db
       .query("categories")
       .withIndex("by_restaurant", (q) =>
         q.eq("restaurantId", args.restaurantId),
       )
       .collect();
-    return categories.sort((a, b) => a.sortOrder - b.sortOrder);
+    return all
+      .filter((c) => c.isActive)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
   },
 });
 
@@ -35,23 +37,27 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
-    const filtered = Object.fromEntries(
-      Object.entries(updates).filter(([_, v]) => v !== undefined),
-    );
-    await ctx.db.patch(id, filtered);
+    const { id, ...fields } = args;
+    const updates: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(fields)) {
+      if (val !== undefined) updates[key] = val;
+    }
+    await ctx.db.patch(id, updates);
   },
 });
 
 export const remove = mutation({
   args: { id: v.id("categories") },
   handler: async (ctx, args) => {
-    // Check for items in this category
     const items = await ctx.db
       .query("menuItems")
       .withIndex("by_category", (q) => q.eq("categoryId", args.id))
       .first();
-    if (items) throw new Error("Cannot delete category with menu items");
+    if (items) {
+      throw new Error(
+        "Cannot delete a category that still has menu items. Remove or reassign them first.",
+      );
+    }
     await ctx.db.delete(args.id);
   },
 });

@@ -2,6 +2,7 @@
 	import '../app.css';
 	import Navbar from '$components/Navbar.svelte';
 	import Footer from '$components/Footer.svelte';
+	import ConvexProvider from '$components/ConvexProvider.svelte';
 	import { initTheme } from '$lib/theme';
 	import { onMount } from 'svelte';
 
@@ -21,10 +22,12 @@
 	/>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col">
-	<Navbar />
-	<main class="flex-1">
-		{@render children()}
-	</main>
-	<Footer />
-</div>
+<ConvexProvider>
+	<div class="flex min-h-screen flex-col">
+		<Navbar />
+		<main class="flex-1">
+			{@render children()}
+		</main>
+		<Footer />
+	</div>
+</ConvexProvider>

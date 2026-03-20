@@ -11,7 +11,9 @@ export default defineSchema({
     currency: v.string(),
     isActive: v.boolean(),
     ownerId: v.string(), // WorkOS user ID
-  }).index("by_slug", ["slug"]).index("by_owner", ["ownerId"]),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_owner", ["ownerId"]),
 
   staff: defineTable({
     restaurantId: v.id("restaurants"),
@@ -52,8 +54,8 @@ export default defineSchema({
     name: v.string(),
     nameNe: v.optional(v.string()), // Nepali name
     description: v.optional(v.string()),
-    price: v.number(), // in smallest currency unit (paisa)
-    imageUrl: v.optional(v.string()),
+    price: v.number(), // in NPR (e.g. 250 = Rs 250)
+    imageStorageId: v.optional(v.id("_storage")), // Convex file storage
     isVeg: v.boolean(),
     isAvailable: v.boolean(),
     sortOrder: v.number(),
@@ -65,8 +67,9 @@ export default defineSchema({
   tables: defineTable({
     restaurantId: v.id("restaurants"),
     number: v.number(),
-    label: v.optional(v.string()), // e.g. "Patio 1", "Window Seat"
+    label: v.optional(v.string()),
     seats: v.number(),
+    qrCode: v.string(), // unique identifier for QR scan, e.g. "mero-surkhet-t1"
     status: v.union(
       v.literal("available"),
       v.literal("occupied"),
@@ -76,11 +79,12 @@ export default defineSchema({
     currentOrderId: v.optional(v.id("orders")),
   })
     .index("by_restaurant", ["restaurantId"])
-    .index("by_restaurant_and_status", ["restaurantId", "status"]),
+    .index("by_restaurant_and_status", ["restaurantId", "status"])
+    .index("by_qr_code", ["qrCode"]),
 
   orders: defineTable({
     restaurantId: v.id("restaurants"),
-    tableId: v.id("tables"),
+    tableId: v.optional(v.id("tables")), // optional for takeaway
     orderNumber: v.string(), // human-readable e.g. "ORD-0042"
     status: v.union(
       v.literal("pending"),
@@ -98,15 +102,23 @@ export default defineSchema({
     tax: v.number(),
     total: v.number(),
     createdBy: v.optional(v.string()), // staff workosUserId or "customer"
+    // Status transition timestamps
+    confirmedAt: v.optional(v.number()),
+    preparingAt: v.optional(v.number()),
+    readyAt: v.optional(v.number()),
+    servedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    cancelledAt: v.optional(v.number()),
   })
     .index("by_restaurant", ["restaurantId"])
     .index("by_restaurant_and_status", ["restaurantId", "status"])
-    .index("by_table", ["tableId"]),
+    .index("by_table", ["tableId"])
+    .index("by_order_number", ["restaurantId", "orderNumber"]),
 
   orderItems: defineTable({
     orderId: v.id("orders"),
     menuItemId: v.id("menuItems"),
-    name: v.string(), // denormalized for history
+    name: v.string(), // denormalized snapshot
     quantity: v.number(),
     unitPrice: v.number(),
     totalPrice: v.number(),
@@ -139,8 +151,8 @@ export default defineSchema({
       v.literal("failed"),
       v.literal("refunded"),
     ),
-    externalRef: v.optional(v.string()), // payment gateway reference
-    processedBy: v.optional(v.string()), // staff workosUserId
+    externalRef: v.optional(v.string()),
+    processedBy: v.optional(v.string()),
   })
     .index("by_order", ["orderId"])
     .index("by_restaurant", ["restaurantId"]),
@@ -156,6 +168,6 @@ export default defineSchema({
       v.literal("nopass"),
     ),
     isActive: v.boolean(),
-    updatedBy: v.string(), // staff workosUserId
+    updatedBy: v.string(),
   }).index("by_restaurant", ["restaurantId"]),
 });

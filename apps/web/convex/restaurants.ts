@@ -11,20 +11,14 @@ export const getBySlug = query({
   },
 });
 
-export const getById = query({
-  args: { id: v.id("restaurants") },
-  handler: async (ctx, args) => {
-    return ctx.db.get(args.id);
-  },
-});
-
-export const listByOwner = query({
+export const getActive = query({
   args: { ownerId: v.string() },
   handler: async (ctx, args) => {
-    return ctx.db
+    const restaurants = await ctx.db
       .query("restaurants")
       .withIndex("by_owner", (q) => q.eq("ownerId", args.ownerId))
       .collect();
+    return restaurants.filter((r) => r.isActive);
   },
 });
 
@@ -43,24 +37,10 @@ export const create = mutation({
       .query("restaurants")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
-    if (existing) throw new Error("Restaurant slug already taken");
-
-    const restaurantId = await ctx.db.insert("restaurants", {
-      ...args,
-      isActive: true,
-    });
-
-    // Create owner as staff member
-    await ctx.db.insert("staff", {
-      restaurantId,
-      workosUserId: args.ownerId,
-      name: "Owner",
-      email: "",
-      role: "owner",
-      isActive: true,
-    });
-
-    return restaurantId;
+    if (existing) {
+      throw new Error(`Restaurant with slug "${args.slug}" already exists`);
+    }
+    return ctx.db.insert("restaurants", { ...args, isActive: true });
   },
 });
 
@@ -75,10 +55,11 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
-    const filtered = Object.fromEntries(
-      Object.entries(updates).filter(([_, v]) => v !== undefined),
-    );
-    await ctx.db.patch(id, filtered);
+    const { id, ...fields } = args;
+    const updates: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(fields)) {
+      if (val !== undefined) updates[key] = val;
+    }
+    await ctx.db.patch(id, updates);
   },
 });

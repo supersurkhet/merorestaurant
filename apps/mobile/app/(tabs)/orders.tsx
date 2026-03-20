@@ -1,54 +1,44 @@
-import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ClipboardList, ChevronRight, Clock, CheckCircle2 } from 'lucide-react-native';
+import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { useRestaurant } from '../../lib/restaurant-context';
+import { api } from '../../lib/convex-api';
+import type { Order, OrderItem as ConvexOrderItem } from '../../lib/convex-types';
 
-type OrderStatus = 'placed' | 'confirmed' | 'preparing' | 'ready' | 'served';
-
-interface Order {
-  id: string;
-  status: OrderStatus;
-  items: string[];
-  total: number;
-  createdAt: string;
-  table: string;
-}
-
-// Demo data — will come from Convex subscription
-const DEMO_ORDERS: Order[] = [
-  {
-    id: '1001',
-    status: 'preparing',
-    items: ['Chicken Momo x2', 'Dal Bhat Set', 'Masala Tea x2'],
-    total: 1010,
-    createdAt: new Date().toISOString(),
-    table: 'Table 5',
-  },
-];
-
-const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  placed: { label: 'Placed', color: '#f59e0b', bg: '#fef3c7' },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  pending: { label: 'Placed', color: '#f59e0b', bg: '#fef3c7' },
   confirmed: { label: 'Confirmed', color: '#3b82f6', bg: '#dbeafe' },
   preparing: { label: 'Preparing', color: '#e63946', bg: '#fee2e2' },
   ready: { label: 'Ready', color: '#10b981', bg: '#ecfdf5' },
   served: { label: 'Served', color: '#6b7280', bg: '#f3f4f6' },
+  completed: { label: 'Done', color: '#6b7280', bg: '#f3f4f6' },
+  cancelled: { label: 'Cancelled', color: '#ef4444', bg: '#fef2f2' },
 };
 
-function OrderCard({ order }: { order: Order }) {
+type OrderWithItems = Order & { items?: ConvexOrderItem[] };
+
+function OrderCard({ order }: { order: OrderWithItems }) {
   const colors = useThemeColor();
   const router = useRouter();
-  const statusConfig = STATUS_CONFIG[order.status];
+  const statusConfig = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
+  const isActive = order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'served';
+
+  const itemSummary = order.items
+    ? order.items.map((i) => `${i.name} x${i.quantity}`).join(' \u00B7 ')
+    : '';
 
   return (
     <Pressable
       style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => router.push(`/order/${order.id}`)}
+      onPress={() => router.push(`/order/${order.orderNumber}`)}
     >
       <View style={styles.cardHeader}>
-        <Text style={[styles.orderId, { color: colors.text }]}>Order #{order.id}</Text>
+        <Text style={[styles.orderId, { color: colors.text }]}>{order.orderNumber}</Text>
         <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-          {order.status === 'preparing' ? (
+          {isActive ? (
             <Clock size={12} color={statusConfig.color} />
           ) : (
             <CheckCircle2 size={12} color={statusConfig.color} />
@@ -59,11 +49,15 @@ function OrderCard({ order }: { order: Order }) {
         </View>
       </View>
 
-      <Text style={[styles.tableName, { color: colors.textSecondary }]}>{order.table}</Text>
+      {order.customerName ? (
+        <Text style={[styles.customerName, { color: colors.textSecondary }]}>{order.customerName}</Text>
+      ) : null}
 
-      <Text style={[styles.itemsList, { color: colors.textSecondary }]} numberOfLines={2}>
-        {order.items.join(' · ')}
-      </Text>
+      {itemSummary ? (
+        <Text style={[styles.itemsList, { color: colors.textSecondary }]} numberOfLines={2}>
+          {itemSummary}
+        </Text>
+      ) : null}
 
       <View style={styles.cardFooter}>
         <Text style={[styles.total, { color: colors.primary }]}>
@@ -77,6 +71,14 @@ function OrderCard({ order }: { order: Order }) {
 
 export default function OrdersScreen() {
   const colors = useThemeColor();
+  const { restaurantId } = useRestaurant();
+
+  const orders = useQuery(
+    api.orders.getByRestaurant,
+    restaurantId ? { restaurantId } : 'skip',
+  ) as OrderWithItems[] | undefined;
+
+  const isLoading = orders === undefined;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -87,10 +89,14 @@ export default function OrdersScreen() {
         </Text>
       </View>
 
-      {DEMO_ORDERS.length > 0 ? (
+      {isLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : orders && orders.length > 0 ? (
         <FlatList
-          data={DEMO_ORDERS}
-          keyExtractor={(item) => item.id}
+          data={orders}
+          keyExtractor={(item) => item._id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -115,19 +121,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
   subtitle: { fontSize: 15, marginTop: 4 },
   list: { paddingHorizontal: 20, paddingBottom: 40 },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 8 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   orderId: { fontSize: 16, fontWeight: '700' },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 12, fontWeight: '700' },
-  tableName: { fontSize: 13, fontWeight: '500' },
+  customerName: { fontSize: 13, fontWeight: '500' },
   itemsList: { fontSize: 14, lineHeight: 20 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   total: { fontSize: 18, fontWeight: '800' },

@@ -15,16 +15,15 @@ import Animated, {
   FadeIn,
   SlideInDown,
 } from 'react-native-reanimated';
+import { useQuery } from 'convex/react';
 import { useCartStore } from '../../store/cart';
+import { api } from '../../lib/convex-api';
+import type { Table as ConvexTable, WifiConfig } from '../../lib/convex-types';
 
 interface QrPayload {
   restaurantId: string;
   tableId: string;
-  tableNumber?: number;
-  tableLabel?: string;
-  ssid?: string;
-  password?: string;
-  encryption?: 'WPA' | 'WPA2' | 'WEP' | 'nopass';
+  qrCode?: string;
 }
 
 export default function ScanScreen() {
@@ -34,6 +33,17 @@ export default function ScanScreen() {
   const [scanResult, setScanResult] = useState<QrPayload | null>(null);
   const [phase, setPhase] = useState<'scanning' | 'success' | 'connecting'>('scanning');
   const setTable = useCartStore((s) => s.setTable);
+
+  // Convex queries — activated after scan
+  const tableInfo = useQuery(
+    api.tables.getByQrCode,
+    scanResult?.qrCode ? { qrCode: scanResult.qrCode } : 'skip',
+  ) as ConvexTable | null | undefined;
+
+  const wifiConfig = useQuery(
+    api.wifi.getActiveByRestaurant,
+    scanResult?.restaurantId ? { restaurantId: scanResult.restaurantId as any } : 'skip',
+  ) as WifiConfig | null | undefined;
 
   // Animated scan line
   const scanLineY = useSharedValue(-120);
@@ -58,13 +68,6 @@ export default function ScanScreen() {
     transform: [{ scale: pulse.value }],
   }));
 
-  const generateWifiUri = useCallback((payload: QrPayload): string | null => {
-    if (!payload.ssid) return null;
-    const enc = payload.encryption ?? 'WPA2';
-    const pass = payload.password ?? '';
-    return `WIFI:T:${enc};S:${payload.ssid};P:${pass};;`;
-  }, []);
-
   const handleBarCodeScanned = useCallback(({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
@@ -85,6 +88,11 @@ export default function ScanScreen() {
       return;
     }
 
+    // If there's a qrCode field, use it; otherwise use tableId as fallback
+    if (!payload.qrCode) {
+      payload.qrCode = payload.tableId;
+    }
+
     setScanResult(payload);
     setPhase('success');
 
@@ -96,23 +104,24 @@ export default function ScanScreen() {
 
     // Store table in cart
     setTable(payload.tableId, payload.restaurantId);
+  }, [scanned, setTable, pulse]);
 
-    // After showing success, offer WiFi or go to menu
-    const wifiUri = generateWifiUri(payload);
-    const tableLabel = payload.tableLabel ?? `Table ${payload.tableNumber ?? ''}`;
+  // When table info loads from Convex, show WiFi connect or navigate
+  useEffect(() => {
+    if (phase !== 'success') return;
+    // Wait a beat for the success animation
+    const timer = setTimeout(() => {
+      const tableLabel = tableInfo?.label ?? `Table ${tableInfo?.number ?? ''}`;
 
-    setTimeout(() => {
-      if (wifiUri && payload.ssid) {
+      if (wifiConfig?.ssid) {
         setPhase('connecting');
         Alert.alert(
           `Welcome to ${tableLabel}!`,
-          `Connect to WiFi "${payload.ssid}" and start ordering?`,
+          `Connect to WiFi "${wifiConfig.ssid}" and start ordering?`,
           [
             {
               text: 'Connect & Order',
               onPress: () => {
-                // On iOS/Android, opening a wifi: URI isn't universal,
-                // but we can try via Settings or just navigate to menu
                 Linking.openURL(`App-Prefs:WIFI`).catch(() => {});
                 router.replace('/(tabs)/menu');
               },
@@ -124,10 +133,11 @@ export default function ScanScreen() {
           ],
         );
       } else {
-        setTimeout(() => router.replace('/(tabs)/menu'), 1200);
+        router.replace('/(tabs)/menu');
       }
-    }, 1500);
-  }, [scanned, setTable, generateWifiUri, router, pulse]);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [phase, tableInfo, wifiConfig, router]);
 
   // Permission loading
   if (!permission) {
@@ -161,7 +171,7 @@ export default function ScanScreen() {
 
   // Success phase
   if (phase === 'success' || phase === 'connecting') {
-    const tableLabel = scanResult?.tableLabel ?? `Table ${scanResult?.tableNumber ?? ''}`;
+    const tableLabel = tableInfo?.label ?? `Table ${tableInfo?.number ?? ''}`;
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.centerContent}>
@@ -179,11 +189,11 @@ export default function ScanScreen() {
               {phase === 'connecting' ? 'Connecting...' : 'Table Found!'}
             </Text>
             <Text style={styles.successTable}>{tableLabel}</Text>
-            {scanResult?.ssid && (
+            {wifiConfig?.ssid && (
               <View style={styles.wifiInfo}>
                 <Wifi size={16} color="#92400e" />
                 <Text style={styles.wifiText}>
-                  WiFi: {scanResult.ssid}
+                  WiFi: {wifiConfig.ssid}
                 </Text>
               </View>
             )}

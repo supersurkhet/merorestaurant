@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors } from '../constants/colors';
 import { convex } from '../lib/convex';
+import { RestaurantProvider } from '../lib/restaurant-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,6 +23,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ConvexProvider client={convex}>
+        <RestaurantProvider>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
@@ -55,6 +57,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
+        </RestaurantProvider>
       </ConvexProvider>
     </GestureHandlerRootView>
   );

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -22,9 +23,12 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useMutation } from 'convex/react';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useCartStore, type CartItem } from '../../store/cart';
+import { api } from '../../lib/convex-api';
+import type { Id } from '../../lib/convex-types';
 
 const VAT_RATE = 0.13;
 
@@ -121,6 +125,7 @@ export default function CartScreen() {
   const clearCart = useCartStore((s) => s.clearCart);
   const tableId = useCartStore((s) => s.tableId);
   const restaurantId = useCartStore((s) => s.restaurantId);
+  const placeOrder = useMutation(api.orders.placeOrder);
   const [customerName, setCustomerName] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
 
@@ -129,22 +134,31 @@ export default function CartScreen() {
   const grandTotal = subtotal + vat;
 
   const handlePlaceOrder = async () => {
-    if (items.length === 0) return;
+    if (items.length === 0 || !restaurantId) return;
     setIsPlacing(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // TODO: Replace with Convex mutation — orders:create
-    // Will pass: restaurantId, tableId, customerName, items
-    console.log('Placing order:', { restaurantId, tableId, customerName, itemCount: items.length });
+    try {
+      const result = await placeOrder({
+        restaurantId: restaurantId as Id<'restaurants'>,
+        tableId: tableId ? (tableId as Id<'tables'>) : undefined,
+        items: items.map((i) => ({
+          menuItemId: i.menuItemId as Id<'menuItems'>,
+          quantity: i.quantity,
+          notes: i.specialInstructions || undefined,
+        })),
+        customerName: customerName || undefined,
+      });
 
-    // Simulate order creation
-    const fakeOrderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
-    await new Promise((r) => setTimeout(r, 800));
-
-    clearCart();
-    setIsPlacing(false);
-    router.dismiss();
-    router.push(`/order/${fakeOrderId}`);
+      clearCart();
+      setIsPlacing(false);
+      router.dismiss();
+      router.push(`/order/${result.orderNumber}`);
+    } catch (err) {
+      setIsPlacing(false);
+      const msg = err instanceof Error ? err.message : 'Failed to place order';
+      Alert.alert('Order Failed', msg);
+    }
   };
 
   // Empty state

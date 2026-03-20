@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,137 +6,57 @@ import {
   FlatList,
   TextInput,
   StyleSheet,
-  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
+import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { CategoryPill } from '../../components/ui/CategoryPill';
 import { MenuItemCard } from '../../components/ui/MenuItemCard';
 import { CartFloatingButton } from '../../components/ui/CartFloatingButton';
-
-// Demo data — will be replaced with Convex queries
-const CATEGORIES = [
-  { id: 'all', name: 'All', nameNe: 'सबै' },
-  { id: 'momo', name: 'Momo', nameNe: 'मोमो' },
-  { id: 'dal-bhat', name: 'Dal Bhat', nameNe: 'दालभात' },
-  { id: 'tandoori', name: 'Tandoori', nameNe: 'तन्दुरी' },
-  { id: 'thakali', name: 'Thakali', nameNe: 'थकाली' },
-  { id: 'drinks', name: 'Drinks', nameNe: 'पेय' },
-  { id: 'dessert', name: 'Desserts', nameNe: 'मिठाई' },
-];
-
-const MENU_ITEMS = [
-  {
-    id: '1',
-    name: 'Chicken Momo (Steam)',
-    nameNe: 'चिकन मोमो (स्टीम)',
-    description: 'Hand-folded dumplings with tender chicken filling, served with spicy tomato achar',
-    price: 250,
-    category: 'momo',
-    isSpicy: true,
-  },
-  {
-    id: '2',
-    name: 'Buff Momo (Fried)',
-    nameNe: 'बफ मोमो (फ्राइड)',
-    description: 'Crispy fried buffalo momo with special house sauce',
-    price: 280,
-    category: 'momo',
-    isSpicy: true,
-  },
-  {
-    id: '3',
-    name: 'Veg Momo (Jhol)',
-    nameNe: 'भेज मोमो (झोल)',
-    description: 'Steamed vegetable dumplings in rich sesame-tomato soup',
-    price: 200,
-    category: 'momo',
-    isVeg: true,
-    isSpicy: true,
-  },
-  {
-    id: '4',
-    name: 'Dal Bhat Tarkari Set',
-    nameNe: 'दालभात तरकारी सेट',
-    description: 'Traditional Nepali thali with rice, lentil soup, seasonal vegetables, pickle & papad',
-    price: 350,
-    category: 'dal-bhat',
-    isVeg: true,
-  },
-  {
-    id: '5',
-    name: 'Chicken Dal Bhat Set',
-    nameNe: 'चिकन दालभात सेट',
-    description: 'Full thali with spiced chicken curry, rice, dal, achar & salad',
-    price: 450,
-    category: 'dal-bhat',
-  },
-  {
-    id: '6',
-    name: 'Tandoori Chicken',
-    nameNe: 'तन्दुरी चिकन',
-    description: 'Clay oven roasted chicken marinated in yogurt & traditional spices',
-    price: 550,
-    category: 'tandoori',
-    isSpicy: true,
-  },
-  {
-    id: '7',
-    name: 'Thakali Khana Set',
-    nameNe: 'थकाली खाना सेट',
-    description: 'Authentic Thakali thali — dal, bhat, gundruk, meat curry, ghee, pickles & more',
-    price: 500,
-    category: 'thakali',
-  },
-  {
-    id: '8',
-    name: 'Masala Tea',
-    nameNe: 'मसला चिया',
-    description: 'Hot Nepali tea brewed with cardamom, ginger & cinnamon',
-    price: 80,
-    category: 'drinks',
-    isVeg: true,
-  },
-  {
-    id: '9',
-    name: 'Lassi (Sweet)',
-    nameNe: 'लस्सी (मिठो)',
-    description: 'Creamy yogurt drink blended with sugar and a touch of cardamom',
-    price: 150,
-    category: 'drinks',
-    isVeg: true,
-  },
-  {
-    id: '10',
-    name: 'Juju Dhau',
-    nameNe: 'जुजु धौ',
-    description: 'King of yogurts — traditional Newari sweetened yogurt from Bhaktapur',
-    price: 180,
-    category: 'dessert',
-    isVeg: true,
-  },
-];
+import { useRestaurant } from '../../lib/restaurant-context';
+import { api } from '../../lib/convex-api';
+import type { Category, MenuItem } from '../../lib/convex-types';
 
 export default function MenuScreen() {
   const colors = useThemeColor();
-  const [activeCategory, setActiveCategory] = useState('all');
+  const { restaurantId } = useRestaurant();
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredItems = MENU_ITEMS.filter((item) => {
-    const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
-    const matchesSearch =
-      !searchQuery ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.nameNe?.includes(searchQuery);
-    return matchesCategory && matchesSearch;
-  });
+  // Convex queries — return undefined while loading, null/[] when loaded
+  const categories = useQuery(
+    api.categories.listByRestaurant,
+    restaurantId ? { restaurantId } : 'skip',
+  ) as Category[] | undefined;
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  }, []);
+  const menuItems = useQuery(
+    api.menuItems.listByRestaurant,
+    restaurantId ? { restaurantId, availableOnly: true } : 'skip',
+  ) as MenuItem[] | undefined;
+
+  const isLoading = categories === undefined || menuItems === undefined;
+
+  const filteredItems = useMemo(() => {
+    if (!menuItems) return [];
+    return menuItems.filter((item) => {
+      const matchesCategory =
+        activeCategory === 'all' || item.categoryId === activeCategory;
+      const matchesSearch =
+        !searchQuery ||
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.nameNe && item.nameNe.includes(searchQuery));
+      return matchesCategory && matchesSearch;
+    });
+  }, [menuItems, activeCategory, searchQuery]);
+
+  // Build category list with "All" prepended
+  const categoryList = useMemo(() => {
+    const all = { _id: 'all', name: 'All', nameNe: 'सबै' };
+    if (!categories) return [all];
+    return [all, ...categories.map((c) => ({ _id: c._id, name: c.name, nameNe: c.nameNe ?? c.name }))];
+  }, [categories]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -147,7 +67,6 @@ export default function MenuScreen() {
           What would you like to eat?
         </Text>
 
-        {/* Search bar */}
         <View style={[styles.searchBar, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
           <Search size={18} color={colors.textSecondary} />
           <TextInput
@@ -167,48 +86,55 @@ export default function MenuScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categories}
         >
-          {CATEGORIES.map((cat) => (
+          {categoryList.map((cat) => (
             <CategoryPill
-              key={cat.id}
+              key={cat._id}
               label={cat.name}
-              isActive={activeCategory === cat.id}
-              onPress={() => setActiveCategory(cat.id)}
+              isActive={activeCategory === cat._id}
+              onPress={() => setActiveCategory(cat._id)}
             />
           ))}
         </ScrollView>
       </View>
 
       {/* Menu items */}
-      <FlatList
-        data={filteredItems}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item }) => (
-          <MenuItemCard
-            id={item.id}
-            name={item.name}
-            nameNe={item.nameNe}
-            description={item.description}
-            price={item.price}
-            isVeg={item.isVeg}
-            isSpicy={item.isSpicy}
-          />
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No dishes found
-            </Text>
-          </View>
-        }
-      />
+      {isLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading menu...
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredItems}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          renderItem={({ item }) => (
+            <MenuItemCard
+              id={item._id}
+              name={item.name}
+              nameNe={item.nameNe}
+              description={item.description}
+              price={item.price}
+              image={item.imageUrl ?? undefined}
+              isVeg={item.isVeg}
+              isSpicy={false}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={{ fontSize: 48 }}>🍽️</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                {searchQuery ? 'No dishes match your search' : 'No dishes available right now'}
+              </Text>
+            </View>
+          }
+        />
+      )}
 
-      {/* Floating cart button */}
       <CartFloatingButton />
     </SafeAreaView>
   );
@@ -232,6 +158,8 @@ const styles = StyleSheet.create({
   categoriesWrapper: { paddingVertical: 12 },
   categories: { paddingHorizontal: 20, gap: 8 },
   list: { paddingHorizontal: 20, paddingBottom: 160 },
-  emptyState: { paddingVertical: 60, alignItems: 'center' },
-  emptyText: { fontSize: 16 },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText: { fontSize: 15 },
+  emptyState: { paddingVertical: 60, alignItems: 'center', gap: 12 },
+  emptyText: { fontSize: 16, textAlign: 'center' },
 });

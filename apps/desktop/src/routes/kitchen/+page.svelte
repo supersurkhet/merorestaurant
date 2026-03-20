@@ -72,18 +72,22 @@
 		// TODO: Re-fetch from Convex subscription
 	}
 
+	function orderTime(order: any): number {
+		return order._creationTime ?? order.createdAt ?? Date.now();
+	}
+
 	const filteredOrders = $derived(
 		data.activeOrders
-			.filter((o) => activeFilter === 'all' || o.status === activeFilter)
-			.sort((a, b) => a.createdAt - b.createdAt)
+			.filter((o: any) => activeFilter === 'all' || o.status === activeFilter)
+			.sort((a: any, b: any) => orderTime(a) - orderTime(b))
 	);
 
 	const filters: { key: KitchenFilter; label: string; count: number }[] = $derived([
 		{ key: 'all', label: 'All Active', count: data.activeOrders.length },
-		{ key: 'pending', label: i18n.t('status.pending'), count: data.orders.filter((o) => o.status === 'pending').length },
-		{ key: 'confirmed', label: i18n.t('status.confirmed'), count: data.orders.filter((o) => o.status === 'confirmed').length },
-		{ key: 'preparing', label: i18n.t('status.preparing'), count: data.orders.filter((o) => o.status === 'preparing').length },
-		{ key: 'ready', label: i18n.t('status.ready'), count: data.orders.filter((o) => o.status === 'ready').length }
+		{ key: 'pending', label: i18n.t('status.pending'), count: data.orders.filter((o: any) => o.status === 'pending').length },
+		{ key: 'confirmed', label: i18n.t('status.confirmed'), count: data.orders.filter((o: any) => o.status === 'confirmed').length },
+		{ key: 'preparing', label: i18n.t('status.preparing'), count: data.orders.filter((o: any) => o.status === 'preparing').length },
+		{ key: 'ready', label: i18n.t('status.ready'), count: data.orders.filter((o: any) => o.status === 'ready').length }
 	]);
 
 	function nextStatus(current: OrderStatus): OrderStatus | null {
@@ -122,25 +126,26 @@
 	}
 
 	function getItemPrepTime(menuItemId: string): number {
-		const item = data.menuItems.find((m) => m._id === menuItemId);
-		return item?.preparationTime ?? 15;
+		const item = data.menuItems.find((m: any) => m._id === menuItemId);
+		return item?.preparationTime ?? item?.sortOrder ?? 15;
 	}
 
 	function printOrder(orderId: string) {
-		const order = data.orders.find((o) => o._id === orderId);
+		const order = data.orders.find((o: any) => o._id === orderId);
 		if (!order) return;
+		const items = order.items ?? [];
 		const ticket = [
 			'================================',
 			'     MERO RESTAURANT - KITCHEN   ',
 			'================================',
-			`Order: #${order._id.slice(-4)}`,
-			`Table: ${order.tableNumber ? `T${order.tableNumber}` : 'Takeaway'}`,
-			`Time: ${new Date(order.createdAt).toLocaleTimeString()}`,
+			`Order: ${order.orderNumber ?? '#' + order._id.slice(-4)}`,
+			`Table: ${order.tableId ? 'Dine-in' : 'Takeaway'}`,
+			`Time: ${new Date(orderTime(order)).toLocaleTimeString()}`,
 			'--------------------------------',
-			...order.items.map((item) => `${item.quantity}x ${item.name}`),
+			...items.map((item: any) => `${item.quantity}x ${item.name}`),
 			'--------------------------------',
 			...(order.notes ? [`NOTE: ${order.notes}`, '--------------------------------'] : []),
-			`Total: ${formatCurrency(order.totalAmount)}`,
+			`Total: ${formatCurrency(order.total ?? order.totalAmount ?? 0)}`,
 			'================================'
 		].join('\n');
 		const win = window.open('', '_blank', 'width=300,height=500');
@@ -218,23 +223,19 @@
 	{:else}
 		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
 			{#each filteredOrders as order}
-				{@const waitMin = orderWaitMinutes(order.createdAt)}
+				{@const waitMin = orderWaitMinutes(orderTime(order))}
 				<Card class="border-l-4 {statusColor(order.status)} overflow-hidden {urgencyRing(waitMin)}">
 					<!-- Order Header -->
 					<div class="flex items-center justify-between p-4 pb-2">
 						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
-								{#if order.tableNumber}
-									T{order.tableNumber}
-								{:else}
-									TK
-								{/if}
+							<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs">
+								{order.orderNumber ?? 'TK'}
 							</div>
 							<div>
-								<p class="text-sm font-semibold">Order #{order._id.slice(-4)}</p>
+								<p class="text-sm font-semibold">{order.orderNumber ?? 'Order #' + order._id.slice(-4)}</p>
 								<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
 									<Clock size={12} />
-									{timeAgo(order.createdAt)}
+									{timeAgo(orderTime(order))}
 								</div>
 							</div>
 						</div>
@@ -264,7 +265,7 @@
 
 					<!-- Items with prep time -->
 					<div class="px-4 py-2 space-y-1">
-						{#each order.items as item}
+						{#each (order.items ?? []) as item}
 							{@const prepTime = getItemPrepTime(item.menuItemId)}
 							<div class="flex items-center justify-between text-sm">
 								<span>
@@ -288,7 +289,7 @@
 					<!-- Actions -->
 					<div class="flex items-center justify-between border-t p-4 mt-2">
 						<div class="flex items-center gap-2">
-							<span class="text-sm font-semibold">{formatCurrency(order.totalAmount)}</span>
+							<span class="text-sm font-semibold">{formatCurrency(order.total ?? order.totalAmount ?? 0)}</span>
 							<!-- Print button -->
 							<Button size="icon" variant="ghost" class="h-7 w-7" onclick={() => printOrder(order._id)}>
 								<Printer size={13} class="text-muted-foreground" />
@@ -299,12 +300,7 @@
 							<Button
 								size="sm"
 								variant={next === 'served' ? 'success' : 'default'}
-								onclick={() => {
-									data.updateOrderStatus(order._id, next);
-									if (next === 'served' && order.tableId) {
-										data.updateTableStatus(order.tableId, 'cleaning');
-									}
-								}}
+								onclick={() => data.updateOrderStatus(order._id, next)}
 							>
 								{#if next === 'confirmed'}
 									<CheckCircle size={14} /> Confirm

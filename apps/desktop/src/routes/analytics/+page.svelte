@@ -22,53 +22,85 @@
 
 	let period = $state<'today' | 'week' | 'month'>('today');
 
-	// Mock analytics data
-	const todayStats = {
-		revenue: 12450,
-		orders: 34,
-		avgOrderValue: 366,
-		revenueChange: 12.5,
-		ordersChange: 8.3,
+	// Computed from Convex dashboard stats and orders
+	const statsFromConvex = $derived(data.dashboardStats);
+	const completedCount = $derived(
+		statsFromConvex?.completedOrderCount ?? data.orders.filter((o: any) => ['completed', 'served'].includes(o.status)).length
+	);
+	const totalRevenue = $derived(statsFromConvex?.totalRevenue ?? 0);
+	const todayStats = $derived({
+		revenue: totalRevenue,
+		orders: completedCount,
+		avgOrderValue: completedCount > 0 ? Math.round(totalRevenue / completedCount) : 0,
+		revenueChange: 0,
+		ordersChange: 0,
 		peakHour: '12:00 - 1:00 PM',
 		avgPrepTime: '18 min'
+	});
+
+	// Compute popular items from real order data
+	const popularItems = $derived.by(() => {
+		const itemMap = new Map<string, { name: string; nameNe: string; count: number; revenue: number }>();
+		for (const order of data.orders) {
+			for (const item of (order.items ?? [])) {
+				const existing = itemMap.get(item.name) ?? { name: item.name, nameNe: '', count: 0, revenue: 0 };
+				existing.count += item.quantity;
+				existing.revenue += item.totalPrice ?? (item.unitPrice * item.quantity);
+				itemMap.set(item.name, existing);
+			}
+		}
+		return [...itemMap.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+	});
+
+	// Compute hourly orders from real data
+	const hourlyOrders = $derived.by(() => {
+		const hours = Array.from({ length: 14 }, (_, i) => ({
+			hour: `${(i + 8) % 12 || 12}${i + 8 < 12 ? 'AM' : 'PM'}`,
+			count: 0
+		}));
+		for (const order of data.orders) {
+			const t = order._creationTime ?? order.createdAt ?? Date.now();
+			const h = new Date(t).getHours();
+			if (h >= 8 && h <= 21) {
+				hours[h - 8].count++;
+			}
+		}
+		return hours;
+	});
+
+	const maxHourly = $derived(Math.max(1, ...hourlyOrders.map((h: any) => h.count)));
+
+	const methodColors: Record<string, string> = {
+		cash: 'bg-emerald-500',
+		fonepay: 'bg-blue-500',
+		khalti: 'bg-purple-500',
+		esewa: 'bg-green-500',
+		card: 'bg-slate-500'
 	};
 
-	const popularItems = [
-		{ name: 'Chicken Momo (Steam)', nameNe: 'चिकन मोमो', count: 45, revenue: 9900 },
-		{ name: 'Dal Bhat Set', nameNe: 'दाल भात सेट', count: 38, revenue: 13300 },
-		{ name: 'Chicken Chowmein', nameNe: 'चिकन चाउमिन', count: 32, revenue: 8960 },
-		{ name: 'Masala Tea', nameNe: 'मसला चिया', count: 67, revenue: 3350 },
-		{ name: 'Buff Momo (Fried)', nameNe: 'बफ मोमो', count: 28, revenue: 7000 },
-		{ name: 'Chicken Sekuwa', nameNe: 'चिकन सेकुवा', count: 22, revenue: 8360 },
-		{ name: 'Fresh Lemon Soda', nameNe: 'लेमन सोडा', count: 41, revenue: 3280 },
-		{ name: 'Jalebi', nameNe: 'जलेबी', count: 18, revenue: 2160 }
-	];
-
-	const hourlyOrders = [
-		{ hour: '8AM', count: 3 },
-		{ hour: '9AM', count: 5 },
-		{ hour: '10AM', count: 8 },
-		{ hour: '11AM', count: 12 },
-		{ hour: '12PM', count: 18 },
-		{ hour: '1PM', count: 22 },
-		{ hour: '2PM', count: 15 },
-		{ hour: '3PM', count: 8 },
-		{ hour: '4PM', count: 6 },
-		{ hour: '5PM', count: 10 },
-		{ hour: '6PM', count: 16 },
-		{ hour: '7PM', count: 20 },
-		{ hour: '8PM', count: 14 },
-		{ hour: '9PM', count: 8 }
-	];
-
-	const maxHourly = $derived(Math.max(...hourlyOrders.map((h) => h.count)));
-
-	const paymentBreakdown = [
-		{ method: 'Cash', amount: 6800, percent: 55, color: 'bg-emerald-500' },
-		{ method: 'Fonepay', amount: 3100, percent: 25, color: 'bg-blue-500' },
-		{ method: 'Khalti', amount: 1550, percent: 12, color: 'bg-purple-500' },
-		{ method: 'eSewa', amount: 1000, percent: 8, color: 'bg-green-500' }
-	];
+	const paymentBreakdown = $derived.by(() => {
+		const payments = data.payments.filter((p: any) => p.status === 'completed');
+		const byMethod = new Map<string, number>();
+		let total = 0;
+		for (const p of payments) {
+			byMethod.set(p.method, (byMethod.get(p.method) ?? 0) + p.amount);
+			total += p.amount;
+		}
+		if (total === 0) {
+			return [
+				{ method: 'Cash', amount: 0, percent: 0, color: 'bg-emerald-500' },
+				{ method: 'Fonepay', amount: 0, percent: 0, color: 'bg-blue-500' }
+			];
+		}
+		return [...byMethod.entries()]
+			.map(([method, amount]) => ({
+				method: method.charAt(0).toUpperCase() + method.slice(1),
+				amount,
+				percent: Math.round((amount / total) * 100),
+				color: methodColors[method] ?? 'bg-slate-500'
+			}))
+			.sort((a, b) => b.amount - a.amount);
+	});
 </script>
 
 <div class="p-8 space-y-6">

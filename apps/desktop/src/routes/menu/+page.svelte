@@ -9,8 +9,7 @@
 	import Dialog from '$lib/components/ui/dialog.svelte';
 	import { getData } from '$lib/stores/data.svelte';
 	import { getI18n } from '$lib/stores/i18n.svelte';
-	import { formatCurrency, generateId } from '$lib/utils';
-	import type { MenuItem, Category } from '$lib/types';
+	import { formatCurrency } from '$lib/utils';
 	import {
 		UtensilsCrossed,
 		Plus,
@@ -29,8 +28,9 @@
 	let searchQuery = $state('');
 	let showItemDialog = $state(false);
 	let showCategoryDialog = $state(false);
-	let editingItem = $state<MenuItem | null>(null);
-	let editingCategory = $state<Category | null>(null);
+	let editingItem = $state<any | null>(null);
+	let editingCategory = $state<any | null>(null);
+	let imageFile = $state<File | null>(null);
 
 	// Form state
 	let itemForm = $state({
@@ -47,12 +47,12 @@
 	let categoryForm = $state({ name: '', nameNe: '', description: '' });
 
 	const filteredItems = $derived(
-		data.menuItems.filter((item) => {
+		data.menuItems.filter((item: any) => {
 			const matchCategory = selectedCategory === 'all' || item.categoryId === selectedCategory;
 			const matchSearch =
 				!searchQuery ||
 				item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				item.nameNe.includes(searchQuery);
+				(item.nameNe ?? '').includes(searchQuery);
 			return matchCategory && matchSearch;
 		})
 	);
@@ -72,32 +72,65 @@
 		showItemDialog = true;
 	}
 
-	function openEditItem(item: MenuItem) {
+	function openEditItem(item: any) {
 		editingItem = item;
 		itemForm = {
 			name: item.name,
-			nameNe: item.nameNe,
+			nameNe: item.nameNe ?? '',
 			description: item.description ?? '',
 			categoryId: item.categoryId,
 			price: item.price,
-			preparationTime: item.preparationTime,
+			preparationTime: item.preparationTime ?? item.sortOrder ?? 15,
 			isVeg: item.isVeg,
 			isAvailable: item.isAvailable
 		};
+		imageFile = null;
 		showItemDialog = true;
 	}
 
-	function saveItem() {
+	async function saveItem() {
+		let imageStorageId: string | undefined;
+		// Upload image if selected
+		if (imageFile) {
+			try {
+				const uploadUrl = await data.generateUploadUrl();
+				const result = await fetch(uploadUrl, {
+					method: 'POST',
+					headers: { 'Content-Type': imageFile.type },
+					body: imageFile
+				});
+				const json = await result.json();
+				imageStorageId = json.storageId;
+			} catch (e) {
+				console.error('Image upload failed:', e);
+			}
+		}
+
 		if (editingItem) {
-			data.updateMenuItem(editingItem._id, { ...itemForm });
+			await data.updateMenuItem(editingItem._id, {
+				name: itemForm.name,
+				nameNe: itemForm.nameNe || undefined,
+				description: itemForm.description || undefined,
+				price: itemForm.price,
+				isVeg: itemForm.isVeg,
+				isAvailable: itemForm.isAvailable,
+				categoryId: itemForm.categoryId,
+				...(imageStorageId ? { imageStorageId } : {})
+			});
 		} else {
-			data.addMenuItem({
-				_id: generateId(),
+			await data.addMenuItem({
+				categoryId: itemForm.categoryId,
+				name: itemForm.name,
+				nameNe: itemForm.nameNe || undefined,
+				description: itemForm.description || undefined,
+				price: itemForm.price,
+				isVeg: itemForm.isVeg,
 				sortOrder: data.menuItems.length + 1,
-				...itemForm
+				...(imageStorageId ? { imageStorageId } : {})
 			});
 		}
 		showItemDialog = false;
+		imageFile = null;
 	}
 
 	function openNewCategory() {
@@ -106,22 +139,24 @@
 		showCategoryDialog = true;
 	}
 
-	function saveCategory() {
+	async function saveCategory() {
 		if (editingCategory) {
-			data.updateCategory(editingCategory._id, categoryForm);
+			await data.updateCategory(editingCategory._id, {
+				name: categoryForm.name,
+				nameNe: categoryForm.nameNe || undefined
+			});
 		} else {
-			data.addCategory({
-				_id: generateId(),
-				...categoryForm,
-				sortOrder: data.categories.length + 1,
-				isActive: true
+			await data.addCategory({
+				name: categoryForm.name,
+				nameNe: categoryForm.nameNe || undefined,
+				sortOrder: data.categories.length + 1
 			});
 		}
 		showCategoryDialog = false;
 	}
 
 	function getCategoryName(id: string): string {
-		return data.categories.find((c) => c._id === id)?.name ?? 'Unknown';
+		return data.categories.find((c: any) => c._id === id)?.name ?? 'Unknown';
 	}
 </script>
 
@@ -195,10 +230,6 @@
 
 					<div class="flex items-center justify-between">
 						<span class="text-lg font-bold text-primary">{formatCurrency(item.price)}</span>
-						<div class="flex items-center gap-1 text-xs text-muted-foreground">
-							<Clock size={12} />
-							{item.preparationTime}min
-						</div>
 					</div>
 
 					<div class="flex items-center justify-between border-t pt-3">
@@ -261,6 +292,16 @@
 				<label class="text-sm font-medium" for="prep">Prep Time (min)</label>
 				<Input id="prep" type="number" bind:value={itemForm.preparationTime} />
 			</div>
+		</div>
+		<div>
+			<label class="text-sm font-medium" for="image">Image</label>
+			<input
+				id="image"
+				type="file"
+				accept="image/*"
+				class="mt-1 block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+				onchange={(e) => { imageFile = (e.target as HTMLInputElement).files?.[0] ?? null; }}
+			/>
 		</div>
 		<div class="flex items-center gap-6">
 			<label class="flex items-center gap-2 text-sm">

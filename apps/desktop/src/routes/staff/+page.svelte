@@ -7,8 +7,8 @@
 	import Dialog from '$lib/components/ui/dialog.svelte';
 	import { getData } from '$lib/stores/data.svelte';
 	import { getI18n } from '$lib/stores/i18n.svelte';
-	import { generateId, formatDate } from '$lib/utils';
-	import type { Role, Staff } from '$lib/types';
+	import { formatDate } from '$lib/utils';
+	import type { Role } from '$lib/types';
 	import {
 		Users,
 		UserPlus,
@@ -28,19 +28,21 @@
 
 	let showInviteDialog = $state(false);
 	let showConfirmDialog = $state(false);
-	let confirmTarget = $state<Staff | null>(null);
+	let confirmTarget = $state<any | null>(null);
 	let searchQuery = $state('');
-	let roleFilter = $state<'all' | Role>('all');
-	let inviteForm = $state({ name: '', email: '', phone: '', role: 'waiter' as Role });
+	let roleFilter = $state<string>('all');
+	let inviteForm = $state({ name: '', email: '', phone: '', role: 'waiter' });
 
-	const roleConfig: Record<Role, { label: string; icon: typeof Shield; color: string; bg: string }> = {
-		admin: { label: 'Admin', icon: Crown, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+	// Convex uses: owner, manager, waiter, kitchen, cashier
+	const roleConfig: Record<string, { label: string; icon: typeof Shield; color: string; bg: string }> = {
+		owner: { label: 'Owner', icon: Crown, color: 'text-amber-500', bg: 'bg-amber-500/10' },
 		manager: { label: 'Manager', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-		kitchen_staff: { label: 'Kitchen', icon: ChefHat, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-		waiter: { label: 'Waiter', icon: Coffee, color: 'text-purple-500', bg: 'bg-purple-500/10' }
+		kitchen: { label: 'Kitchen', icon: ChefHat, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+		waiter: { label: 'Waiter', icon: Coffee, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+		cashier: { label: 'Cashier', icon: Coffee, color: 'text-teal-500', bg: 'bg-teal-500/10' }
 	};
 
-	const allRoles: Role[] = ['admin', 'manager', 'kitchen_staff', 'waiter'];
+	const allRoles = ['owner', 'manager', 'waiter', 'kitchen', 'cashier'];
 
 	const filteredStaff = $derived(
 		data.staff.filter((s) => {
@@ -52,26 +54,25 @@
 		})
 	);
 
-	function inviteStaff() {
+	async function inviteStaff() {
 		if (!inviteForm.name || !inviteForm.email) return;
-		data.addStaff({
-			_id: generateId(),
-			...inviteForm,
-			isActive: true,
-			joinedAt: Date.now()
+		await data.addStaff({
+			name: inviteForm.name,
+			email: inviteForm.email,
+			role: inviteForm.role
 		});
 		showInviteDialog = false;
 		inviteForm = { name: '', email: '', phone: '', role: 'waiter' };
 	}
 
-	function requestToggle(member: Staff) {
+	function requestToggle(member: any) {
 		confirmTarget = member;
 		showConfirmDialog = true;
 	}
 
-	function confirmToggle() {
+	async function confirmToggle() {
 		if (confirmTarget) {
-			data.toggleStaffActive(confirmTarget._id);
+			await data.toggleStaffActive(confirmTarget._id);
 		}
 		showConfirmDialog = false;
 		confirmTarget = null;
@@ -182,7 +183,7 @@
 									</div>
 								{/if}
 								<div class="flex items-center gap-1.5">
-									<Calendar size={12} /> Joined {formatDate(member.joinedAt)}
+									<Calendar size={12} /> Joined {formatDate(member._creationTime ?? member.joinedAt ?? Date.now())}
 								</div>
 							</div>
 

@@ -8,8 +8,6 @@
 	import { getData } from '$lib/stores/data.svelte';
 	import { getI18n } from '$lib/stores/i18n.svelte';
 	import { formatDate } from '$lib/utils';
-	import { convexMutation } from '$lib/convex';
-	import type { WifiConfig } from '$lib/types';
 	import { Wifi, Eye, EyeOff, Save, RefreshCw, Shield, Clock, Printer, CheckCircle } from 'lucide-svelte';
 
 	const data = getData();
@@ -17,13 +15,16 @@
 
 	let ssid = $state(data.wifiConfig.ssid);
 	let password = $state(data.wifiConfig.password);
-	let encryption = $state<WifiConfig['encryption']>(data.wifiConfig.encryption);
+	let encryption = $state(data.wifiConfig.encryption);
 	let showPassword = $state(false);
 	let saving = $state(false);
 	let saved = $state(false);
 	let isEditing = $state(false);
 
-	const wifiQrString = $derived(`WIFI:T:${encryption};S:${ssid};P:${password};;`);
+	// Use QR string from Convex if available, otherwise compute
+	const wifiQrString = $derived(
+		data.wifiConfig.qrString || `WIFI:T:${encryption};S:${ssid};P:${password};;`
+	);
 
 	const hasChanges = $derived(
 		ssid !== data.wifiConfig.ssid ||
@@ -31,16 +32,27 @@
 		encryption !== data.wifiConfig.encryption
 	);
 
+	// Sync form when Convex data updates
+	$effect(() => {
+		if (!isEditing && data.wifiConfig.ssid) {
+			ssid = data.wifiConfig.ssid;
+			password = data.wifiConfig.password;
+			encryption = data.wifiConfig.encryption;
+		}
+	});
+
 	async function saveWifi() {
 		saving = true;
-		// Update local state
-		data.updateWifi(ssid, password, encryption);
-		// Stub Convex mutation
-		await convexMutation('wifiConfigs:update', { ssid, password, encryption });
-		saving = false;
-		saved = true;
-		isEditing = false;
-		setTimeout(() => (saved = false), 3000);
+		try {
+			await data.updateWifi(ssid, password, encryption);
+			saved = true;
+			isEditing = false;
+			setTimeout(() => (saved = false), 3000);
+		} catch (e) {
+			console.error('Failed to save WiFi config:', e);
+		} finally {
+			saving = false;
+		}
 	}
 
 	function resetForm() {

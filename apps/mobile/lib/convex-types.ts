@@ -13,7 +13,7 @@ export interface Restaurant {
   _creationTime: number;
   name: string;
   nameNe?: string;
-  slug: string;
+  slug?: string;
   description?: string;
   descriptionNe?: string;
   address?: string;
@@ -22,6 +22,8 @@ export interface Restaurant {
   openingTime?: string;
   closingTime?: string;
   currency?: string;
+  latitude?: number;
+  longitude?: number;
   isActive: boolean;
 }
 

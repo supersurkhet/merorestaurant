@@ -27,6 +27,7 @@ import { useSessionStore } from '../../store/session';
 import { useI18n } from '../../lib/i18n';
 import { api } from '../../lib/convex-api';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { RestaurantMap } from '../../components/ui/RestaurantMap';
 import type { MenuItem, Restaurant, Id } from '../../lib/convex-types';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -263,6 +264,8 @@ export default function HomeScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 20, marginBottom: 14 }]}>
                   Restaurants Near You
                 </Text>
+                {/* Map view for restaurants with coordinates */}
+                <RestaurantMap restaurants={restaurants} />
                 {restaurants.map((r: Restaurant) => (
                   <Pressable
                     key={r._id}

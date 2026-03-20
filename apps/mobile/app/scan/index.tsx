@@ -19,6 +19,7 @@ import { useQuery } from 'convex/react';
 import { useSessionStore } from '../../store/session';
 import { useCartStore } from '../../store/cart';
 import { api } from '../../lib/convex-api';
+import { RestaurantMiniMap } from '../../components/ui/RestaurantMap';
 
 export default function ScanScreen() {
   const router = useRouter();
@@ -179,6 +180,12 @@ export default function ScanScreen() {
               <View style={styles.wifiRow}>
                 <Wifi size={14} color="#d97706" />
                 <Text style={styles.wifiText}>WiFi: {wifi.ssid}</Text>
+              </View>
+            )}
+            {/* Mini map if restaurant has coordinates */}
+            {restaurant?.latitude && restaurant?.longitude && (
+              <View style={{ width: '100%', marginTop: 8 }}>
+                <RestaurantMiniMap restaurant={restaurant} />
               </View>
             )}
           </Animated.View>

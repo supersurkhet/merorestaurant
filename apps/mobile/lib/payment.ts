@@ -8,8 +8,8 @@
 import { KhaltiClient, type KhaltiInitiateResponse } from '@nabwin/paisa';
 import { EsewaClient, type EsewaPaymentFormData } from '@nabwin/paisa';
 
-// Sandbox test credentials — replace with env vars in production
-const KHALTI_SECRET = process.env.EXPO_PUBLIC_KHALTI_SECRET ?? 'test_secret_key_placeholder';
+// Credentials from environment — sandbox defaults for development
+const KHALTI_SECRET = process.env.EXPO_PUBLIC_KHALTI_SECRET ?? '';
 const ESEWA_MERCHANT = process.env.EXPO_PUBLIC_ESEWA_MERCHANT ?? 'EPAYTEST';
 const ESEWA_SECRET = process.env.EXPO_PUBLIC_ESEWA_SECRET ?? '8gBm/:&EnhH.1/q';
 

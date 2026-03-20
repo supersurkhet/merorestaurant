@@ -10,6 +10,7 @@ import { convex } from '../lib/convex';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { ToastProvider } from '../components/ui/Toast';
 import { OfflineBanner } from '../components/ui/OfflineBanner';
+import { restoreSession } from '../lib/auth';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,7 +20,7 @@ export default function RootLayout() {
   const colors = Colors[colorScheme];
 
   useEffect(() => {
-    SplashScreen.hideAsync();
+    restoreSession().finally(() => SplashScreen.hideAsync());
   }, []);
 
   return (

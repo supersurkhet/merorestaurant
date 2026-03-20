@@ -4,7 +4,9 @@ import { useRouter } from 'expo-router';
 import { User, LogOut, Globe, Moon, ChevronRight, Info, QrCode } from 'lucide-react-native';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useSessionStore } from '../../store/session';
+import { useAuthStore } from '../../store/auth';
 import { useI18n } from '../../lib/i18n';
+import { logout } from '../../lib/auth';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 
 export default function ProfileScreen() {
@@ -12,6 +14,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const session = useSessionStore();
+  const { user, isAuthenticated } = useAuthStore();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -24,12 +27,18 @@ export default function ProfileScreen() {
         <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
           <User size={32} color={colors.primary} />
         </View>
-        <Text style={[styles.name, { color: colors.text }]}>{t.profile.guest}</Text>
-        <Pressable onPress={() => router.push('/(auth)/login')}>
-          <Text style={[styles.loginLink, { color: colors.primary }]}>
-            {t.profile.signInPrompt}
-          </Text>
-        </Pressable>
+        <Text style={[styles.name, { color: colors.text }]}>
+          {isAuthenticated ? user?.name : t.profile.guest}
+        </Text>
+        {isAuthenticated ? (
+          <Text style={[styles.loginLink, { color: colors.textSecondary }]}>{user?.email}</Text>
+        ) : (
+          <Pressable onPress={() => router.push('/(auth)/login')}>
+            <Text style={[styles.loginLink, { color: colors.primary }]}>
+              {t.profile.signInPrompt}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Current session info */}
@@ -81,10 +90,15 @@ export default function ProfileScreen() {
       </View>
 
       {/* Sign out */}
-      <Pressable style={[styles.signOutBtn, { borderColor: colors.border }]}>
-        <LogOut size={20} color={colors.error} />
-        <Text style={[styles.signOutText, { color: colors.error }]}>{t.profile.signOut}</Text>
-      </Pressable>
+      {isAuthenticated && (
+        <Pressable
+          style={[styles.signOutBtn, { borderColor: colors.border }]}
+          onPress={async () => { await logout(); }}
+        >
+          <LogOut size={20} color={colors.error} />
+          <Text style={[styles.signOutText, { color: colors.error }]}>{t.profile.signOut}</Text>
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }

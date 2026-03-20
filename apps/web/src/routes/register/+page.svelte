@@ -40,7 +40,7 @@
 		error = '';
 
 		try {
-			// Upsert user in Convex with real WorkOS ID
+			// Upsert user in Convex
 			const userId = await convexClient.mutation(api.auth.loginOrSignup, {
 				workosUserId: user.id,
 				email: user.email,
@@ -96,7 +96,7 @@
 					class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-[15px] font-semibold text-primary-foreground shadow-md transition-all hover:shadow-lg"
 				>
 					<LogIn class="h-5 w-5" />
-					Sign up with WorkOS
+					{$t('nav.getStarted')}
 				</a>
 				<p class="mt-4 text-center text-[12px] text-muted-foreground">
 					Already have an account?

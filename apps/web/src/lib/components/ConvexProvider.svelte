@@ -14,7 +14,7 @@
 
 	setupConvex(convexUrl);
 
-	// Pass WorkOS access token to Convex — only on the client
+	// Pass auth token to Convex — only on the client
 	if (browser) {
 		$effect(() => {
 			const token = page.data?.accessToken;

@@ -4,6 +4,7 @@ import { throwLocalizedError } from "./i18n";
 import { validatePrice, validateStringLength } from "./validation";
 import { checkRateLimit } from "./rateLimit";
 
+/** List items for a category (public — customer-facing menu). */
 export const listByCategory = query({
   args: { categoryId: v.id("categories") },
   handler: async (ctx, args) => {
@@ -17,6 +18,7 @@ export const listByCategory = query({
   },
 });
 
+/** List all items for a restaurant (admin view — includes unavailable). */
 export const listByRestaurant = query({
   args: {
     restaurantId: v.id("restaurants"),
@@ -32,7 +34,6 @@ export const listByRestaurant = query({
     const filtered = args.availableOnly
       ? items.filter((i) => i.isAvailable)
       : items;
-    // Resolve image URLs
     return Promise.all(
       filtered.map(async (item) => {
         const imageUrl = item.imageStorageId
@@ -96,6 +97,8 @@ export const update = mutation({
     categoryId: v.optional(v.id("categories")),
   },
   handler: async (ctx, args) => {
+    if (args.name) validateStringLength(args.name, "Item name", 100);
+    if (args.price !== undefined) validatePrice(args.price);
     const { id, ...fields } = args;
     const updates: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(fields)) {

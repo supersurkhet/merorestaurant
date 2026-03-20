@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
+import { validateStringLength } from "./validation";
 
+/** List active categories for a restaurant, sorted by sortOrder. */
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
   handler: async (ctx, args) => {
@@ -25,6 +27,7 @@ export const create = mutation({
     sortOrder: v.number(),
   },
   handler: async (ctx, args) => {
+    validateStringLength(args.name, "Category name", 50);
     return ctx.db.insert("categories", { ...args, isActive: true });
   },
 });
@@ -38,6 +41,7 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    if (args.name) validateStringLength(args.name, "Category name", 50);
     const { id, ...fields } = args;
     const updates: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(fields)) {
@@ -54,9 +58,7 @@ export const remove = mutation({
       .query("menuItems")
       .withIndex("by_category", (q) => q.eq("categoryId", args.id))
       .first();
-    if (items) {
-      throwLocalizedError("menu.category_has_items");
-    }
+    if (items) throwLocalizedError("menu.category_has_items");
     await ctx.db.delete(args.id);
   },
 });

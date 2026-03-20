@@ -1,86 +1,91 @@
 import { v } from "convex/values";
-import {
-  query,
-  type QueryCtx,
-  type MutationCtx,
-} from "./_generated/server";
+import { query, type QueryCtx, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { throwLocalizedError } from "./i18n";
 
-// ── JWT verification ────────────────────────────────────────────────
-// WorkOS JWTs are RS256-signed. In Convex (V8 runtime) we do a
-// lightweight decode + expiry check. Full RS256 signature verification
-// should happen at the edge (SvelteKit server / Cloudflare Worker)
-// before the token reaches Convex mutations.
+// ── JWT helpers ─────────────────────────────────────────────────────
 
 interface WorkosJwtPayload {
-  sub: string; // WorkOS user ID
+  sub: string;
   exp: number;
   iat: number;
   org_id?: string;
-  role?: string;
 }
 
 export function decodeJwtPayload(token: string): WorkosJwtPayload {
   const parts = token.split(".");
   if (parts.length !== 3) throwLocalizedError("auth.invalid_jwt");
-  // base64url → base64 → decode
   const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-  const json = atob(base64);
-  return JSON.parse(json);
+  return JSON.parse(atob(base64));
 }
 
 export function verifyWorkosToken(token: string): WorkosJwtPayload {
   const payload = decodeJwtPayload(token);
-  if (!payload.sub) throw new Error("JWT missing sub claim");
+  if (!payload.sub) throwLocalizedError("auth.invalid_jwt");
   if (payload.exp && payload.exp * 1000 < Date.now()) {
     throwLocalizedError("auth.jwt_expired");
   }
   return payload;
 }
 
-// ── Staff lookup by token ───────────────────────────────────────────
+// ── Multi-tenant auth context ───────────────────────────────────────
 
-export async function getStaffByToken(
+export interface AuthContext {
+  workosUserId: string;
+  staff: Doc<"staff">;
+  restaurantId: Id<"restaurants">;
+  role: Doc<"staff">["role"];
+}
+
+/**
+ * Resolve the current user in the context of a specific restaurant.
+ * Ensures the user is an active staff member of that restaurant.
+ */
+export async function authenticateForRestaurant(
   ctx: QueryCtx | MutationCtx,
   token: string,
-): Promise<Doc<"staff"> & { restaurantId: Id<"restaurants"> }> {
+  restaurantId: Id<"restaurants">,
+): Promise<AuthContext> {
   const { sub: workosUserId } = verifyWorkosToken(token);
 
   const staffEntries = await ctx.db
     .query("staff")
-    .withIndex("by_workos_user", (q) => q.eq("workosUserId", workosUserId))
+    .withIndex("by_restaurant", (q) => q.eq("restaurantId", restaurantId))
     .collect();
 
-  const active = staffEntries.find((s) => s.isActive);
-  if (!active) {
-    throwLocalizedError("auth.no_active_staff");
+  const staff = staffEntries.find(
+    (s) => s.workosUserId === workosUserId && s.isActive,
+  );
+  if (!staff) {
+    throwLocalizedError("auth.unauthorized");
   }
-  return active;
+
+  return { workosUserId, staff, restaurantId, role: staff.role };
 }
 
-// ── Role guard ──────────────────────────────────────────────────────
-
-type StaffRole = Doc<"staff">["role"];
-
+/**
+ * Require specific roles for a restaurant operation.
+ */
 export async function requireRole(
   ctx: QueryCtx | MutationCtx,
   token: string,
-  roles: StaffRole[],
-): Promise<Doc<"staff">> {
-  const staff = await getStaffByToken(ctx, token);
-  if (!roles.includes(staff.role)) {
+  restaurantId: Id<"restaurants">,
+  roles: Doc<"staff">["role"][],
+): Promise<AuthContext> {
+  const auth = await authenticateForRestaurant(ctx, token, restaurantId);
+  if (!roles.includes(auth.role)) {
     throwLocalizedError("auth.access_denied", {
       roles: roles.join(", "),
-      current: staff.role,
+      current: auth.role,
     });
   }
-  return staff;
+  return auth;
 }
 
-// ── Public queries (callable from client) ───────────────────────────
+// ── Public queries ──────────────────────────────────────────────────
 
-export const getStaffRoles = query({
+/** Get all restaurants a user has access to (with their role in each). */
+export const currentUser = query({
   args: { workosUserId: v.string() },
   handler: async (ctx, args) => {
     const staffEntries = await ctx.db
@@ -90,35 +95,46 @@ export const getStaffRoles = query({
       )
       .collect();
 
-    return staffEntries
-      .filter((s) => s.isActive)
-      .map((s) => ({
-        restaurantId: s.restaurantId,
-        role: s.role,
-        name: s.name,
-      }));
+    const active = staffEntries.filter((s) => s.isActive);
+
+    const restaurants = await Promise.all(
+      active.map(async (s) => {
+        const restaurant = await ctx.db.get(s.restaurantId);
+        if (!restaurant || !restaurant.isActive) return null;
+        return {
+          restaurantId: s.restaurantId,
+          restaurantName: restaurant.name,
+          restaurantSlug: restaurant.slug,
+          role: s.role,
+          staffId: s._id,
+        };
+      }),
+    );
+
+    return {
+      workosUserId: args.workosUserId,
+      restaurants: restaurants.filter(Boolean),
+    };
   },
 });
 
-export const getAccessibleRestaurants = query({
-  args: { workosUserId: v.string() },
+/** Get user's role in a specific restaurant. */
+export const getRoleInRestaurant = query({
+  args: {
+    workosUserId: v.string(),
+    restaurantId: v.id("restaurants"),
+  },
   handler: async (ctx, args) => {
     const staffEntries = await ctx.db
       .query("staff")
-      .withIndex("by_workos_user", (q) =>
-        q.eq("workosUserId", args.workosUserId),
+      .withIndex("by_restaurant", (q) =>
+        q.eq("restaurantId", args.restaurantId),
       )
       .collect();
 
-    const restaurants = await Promise.all(
-      staffEntries
-        .filter((s) => s.isActive)
-        .map(async (s) => {
-          const restaurant = await ctx.db.get(s.restaurantId);
-          return restaurant ? { ...restaurant, role: s.role } : null;
-        }),
+    const member = staffEntries.find(
+      (s) => s.workosUserId === args.workosUserId && s.isActive,
     );
-
-    return restaurants.filter(Boolean);
+    return member ? { role: member.role, staffId: member._id } : null;
   },
 });

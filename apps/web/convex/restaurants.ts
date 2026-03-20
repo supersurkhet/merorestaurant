@@ -3,28 +3,8 @@ import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
 import { validateSlug, validatePhone, validateStringLength } from "./validation";
 
-export const getBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    return ctx.db
-      .query("restaurants")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
-  },
-});
-
-export const getActive = query({
-  args: { ownerId: v.string() },
-  handler: async (ctx, args) => {
-    const restaurants = await ctx.db
-      .query("restaurants")
-      .withIndex("by_owner", (q) => q.eq("ownerId", args.ownerId))
-      .collect();
-    return restaurants.filter((r) => r.isActive);
-  },
-});
-
-export const create = mutation({
+/** Register a new restaurant and make the caller the owner. */
+export const register = mutation({
   args: {
     name: v.string(),
     slug: v.string(),
@@ -32,7 +12,9 @@ export const create = mutation({
     phone: v.optional(v.string()),
     timezone: v.string(),
     currency: v.string(),
-    ownerId: v.string(),
+    ownerId: v.string(), // WorkOS user ID
+    ownerName: v.string(),
+    ownerEmail: v.string(),
   },
   handler: async (ctx, args) => {
     validateSlug(args.slug);
@@ -46,7 +28,57 @@ export const create = mutation({
     if (existing) {
       throwLocalizedError("restaurant.slug_taken", { slug: args.slug });
     }
-    return ctx.db.insert("restaurants", { ...args, isActive: true });
+
+    const restaurantId = await ctx.db.insert("restaurants", {
+      name: args.name,
+      slug: args.slug,
+      address: args.address,
+      phone: args.phone,
+      timezone: args.timezone,
+      currency: args.currency,
+      isActive: true,
+      ownerId: args.ownerId,
+    });
+
+    // Create the owner as staff
+    await ctx.db.insert("staff", {
+      restaurantId,
+      workosUserId: args.ownerId,
+      name: args.ownerName,
+      email: args.ownerEmail,
+      role: "owner",
+      isActive: true,
+    });
+
+    // Create a default menu
+    await ctx.db.insert("menus", {
+      restaurantId,
+      name: "Main Menu",
+      isActive: true,
+    });
+
+    return restaurantId;
+  },
+});
+
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("restaurants")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+  },
+});
+
+/** List all restaurants owned by a user. */
+export const getByOwner = query({
+  args: { ownerId: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("restaurants")
+      .withIndex("by_owner", (q) => q.eq("ownerId", args.ownerId))
+      .collect();
   },
 });
 
@@ -61,11 +93,21 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    if (args.name) validateStringLength(args.name, "Restaurant name", 100);
+    if (args.phone) validatePhone(args.phone);
     const { id, ...fields } = args;
     const updates: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) updates[key] = val;
     }
     await ctx.db.patch(id, updates);
+  },
+});
+
+/** List all active restaurants (for public directory / landing page). */
+export const list = query({
+  handler: async (ctx) => {
+    const all = await ctx.db.query("restaurants").collect();
+    return all.filter((r) => r.isActive);
   },
 });

@@ -19,10 +19,14 @@ export const listByRestaurant = query({
 export const getByQrCode = query({
   args: { qrCode: v.string() },
   handler: async (ctx, args) => {
-    return ctx.db
+    const table = await ctx.db
       .query("tables")
       .withIndex("by_qr_code", (q) => q.eq("qrCode", args.qrCode))
       .unique();
+    if (!table) return null;
+    // Return table with restaurant info for multi-tenant QR scan
+    const restaurant = await ctx.db.get(table.restaurantId);
+    return { ...table, restaurant };
   },
 });
 
@@ -38,12 +42,13 @@ export const create = mutation({
     validateTableNumber(args.number);
     validateSeats(args.seats);
 
-    // Ensure qrCode is unique
     const existing = await ctx.db
       .query("tables")
       .withIndex("by_qr_code", (q) => q.eq("qrCode", args.qrCode))
       .unique();
-    if (existing) throwLocalizedError("table.qr_code_in_use", { qrCode: args.qrCode });
+    if (existing) {
+      throwLocalizedError("table.qr_code_in_use", { qrCode: args.qrCode });
+    }
 
     return ctx.db.insert("tables", { ...args, status: "available" });
   },
@@ -58,16 +63,18 @@ export const update = mutation({
     qrCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { id, ...fields } = args;
-    if (fields.qrCode) {
+    if (args.number) validateTableNumber(args.number);
+    if (args.seats) validateSeats(args.seats);
+    if (args.qrCode) {
       const existing = await ctx.db
         .query("tables")
-        .withIndex("by_qr_code", (q) => q.eq("qrCode", fields.qrCode!))
+        .withIndex("by_qr_code", (q) => q.eq("qrCode", args.qrCode!))
         .unique();
-      if (existing && existing._id !== id) {
-        throwLocalizedError("table.qr_code_in_use", { qrCode: fields.qrCode! });
+      if (existing && existing._id !== args.id) {
+        throwLocalizedError("table.qr_code_in_use", { qrCode: args.qrCode! });
       }
     }
+    const { id, ...fields } = args;
     const updates: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) updates[key] = val;

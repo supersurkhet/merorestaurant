@@ -21,12 +21,16 @@ export const createPayment = mutation({
     processedBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Rate limit: 5 payments/min per order
     await checkRateLimit(ctx, "createPayment", args.orderId);
     validatePaymentAmount(args.amount);
 
+    // Verify order belongs to this restaurant
     const order = await ctx.db.get(args.orderId);
     if (!order) throwLocalizedError("order.not_found");
+    if (order.restaurantId !== args.restaurantId) {
+      throwLocalizedError("order.not_found");
+    }
+
     return ctx.db.insert("payments", { ...args, status: "pending" });
   },
 });
@@ -63,7 +67,6 @@ export const updateStatus = mutation({
     if (args.externalRef) patch.externalRef = args.externalRef;
     await ctx.db.patch(args.id, patch);
 
-    // On completion, mark order completed and free table
     if (args.status === "completed") {
       const order = await ctx.db.get(payment.orderId);
       if (order) {
@@ -77,16 +80,14 @@ export const updateStatus = mutation({
             currentOrderId: undefined,
           });
         }
-
-        // Notify
         await ctx.scheduler.runAfter(
           0,
           internal.notifications.createNotification,
           {
             restaurantId: payment.restaurantId,
             type: "payment_received",
-            title: `Payment Received`,
-            message: `Rs ${payment.amount} via ${payment.method} for order ${order.orderNumber}.`,
+            title: "Payment Received",
+            message: `Rs ${payment.amount} via ${payment.method} for ${order.orderNumber}.`,
             orderId: order._id,
           },
         );
@@ -95,9 +96,31 @@ export const updateStatus = mutation({
   },
 });
 
+/** List payments for a restaurant (settlement tracking). */
 export const listByRestaurant = query({
-  args: { restaurantId: v.id("restaurants") },
+  args: {
+    restaurantId: v.id("restaurants"),
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("completed"),
+        v.literal("failed"),
+        v.literal("refunded"),
+      ),
+    ),
+  },
   handler: async (ctx, args) => {
+    if (args.status) {
+      return ctx.db
+        .query("payments")
+        .withIndex("by_restaurant_and_status", (q) =>
+          q
+            .eq("restaurantId", args.restaurantId)
+            .eq("status", args.status!),
+        )
+        .order("desc")
+        .collect();
+    }
     return ctx.db
       .query("payments")
       .withIndex("by_restaurant", (q) =>
@@ -105,5 +128,37 @@ export const listByRestaurant = query({
       )
       .order("desc")
       .collect();
+  },
+});
+
+/** Settlement summary for a restaurant. */
+export const getSettlement = query({
+  args: { restaurantId: v.id("restaurants") },
+  handler: async (ctx, args) => {
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_restaurant", (q) =>
+        q.eq("restaurantId", args.restaurantId),
+      )
+      .collect();
+
+    const completed = payments.filter((p) => p.status === "completed");
+    const pending = payments.filter((p) => p.status === "pending");
+    const refunded = payments.filter((p) => p.status === "refunded");
+
+    const byMethod: Record<string, { count: number; total: number }> = {};
+    for (const p of completed) {
+      if (!byMethod[p.method]) byMethod[p.method] = { count: 0, total: 0 };
+      byMethod[p.method].count++;
+      byMethod[p.method].total += p.amount;
+    }
+
+    return {
+      totalCollected: completed.reduce((s, p) => s + p.amount, 0),
+      totalPending: pending.reduce((s, p) => s + p.amount, 0),
+      totalRefunded: refunded.reduce((s, p) => s + p.amount, 0),
+      completedCount: completed.length,
+      byMethod,
+    };
   },
 });

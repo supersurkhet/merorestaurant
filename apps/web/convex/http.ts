@@ -162,7 +162,7 @@ http.route({
       return jsonResponse({ error: "Restaurant not found" }, 404);
     }
 
-    const wifi = await ctx.runQuery(api.wifi.getActiveByRestaurant, {
+    const wifi = await ctx.runQuery(api.wifi.getByRestaurant, {
       restaurantId: restaurant._id,
     });
     if (!wifi) {

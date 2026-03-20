@@ -5,7 +5,8 @@
 	import { RESTAURANT_SLUG } from '$lib/stores/restaurant.svelte';
 	import { menuItems as fallbackItems, categories as fallbackCategories } from '$lib/menu-data';
 	import { cart } from '$lib/stores/cart.svelte';
-	import { Star, Leaf, Flame, Plus, Minus, ShoppingCart, Check } from 'lucide-svelte';
+	import { Star, Leaf, Flame, Plus, Minus, ShoppingCart, Check, AlertCircle } from 'lucide-svelte';
+	import MenuSkeleton from '$components/MenuSkeleton.svelte';
 
 	const restaurant = useQuery(api.restaurants.getBySlug, { slug: RESTAURANT_SLUG });
 
@@ -90,8 +91,18 @@
 <section class="bg-background py-12">
 	<div class="mx-auto max-w-7xl px-4 sm:px-6">
 		{#if menuItemsQuery.isLoading && !menuItemsQuery.data}
-			<div class="flex justify-center py-20">
-				<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+			<MenuSkeleton />
+		{:else if menuItemsQuery.error && !menuItemsQuery.data}
+			<div class="rounded-2xl border border-border bg-card py-16 text-center">
+				<AlertCircle class="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
+				<h2 class="text-lg font-semibold text-foreground">Unable to load menu</h2>
+				<p class="mt-2 text-sm text-muted-foreground">Please check your connection and try again.</p>
+				<button
+					onclick={() => location.reload()}
+					class="mt-6 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground"
+				>
+					Retry
+				</button>
 			</div>
 		{:else}
 			<!-- Category Filter -->

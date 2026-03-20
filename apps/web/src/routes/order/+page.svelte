@@ -48,10 +48,9 @@
 				cart.clearCart();
 				goto(`/order/${result.orderNumber}`);
 			} else {
-				// Fallback when Convex isn't connected
-				const orderNumber = `ORD-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
-				cart.clearCart();
-				goto(`/order/${orderNumber}`);
+				error = 'Unable to connect to the server. Please check your connection and try again.';
+				isPlacing = false;
+				return;
 			}
 		} catch (err: any) {
 			console.error('Failed to place order:', err);

@@ -9,5 +9,10 @@
     "build": "echo 'no build needed'",
     "lint": "biome check .",
     "check": "svelte-check"
+  },
+  "devDependencies": {
+    "svelte": "^5.54.0",
+    "svelte-check": "^4.4.5",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,5 +1,5 @@
 import { anyApi } from 'convex/server';
 
-// Use anyApi until Convex codegen is run with a deployed backend.
-// Once `npx convex dev` runs, replace with: import { api } from '../../convex/_generated/api';
+// Points to root convex/ functions (shared across all apps).
+// Replace with: import { api } from '../../../convex/_generated/api' once codegen runs.
 export const api = anyApi;

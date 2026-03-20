@@ -83,12 +83,16 @@
 		error = '';
 
 		try {
+			// Query order to get total for payment amount
+			const order = await convexClient.query(api.orders.get, { id: orderId as any });
+			if (!order) throw new Error('Order not found');
+
 			// Create payment record in Convex
 			const paymentId = await convexClient.mutation(api.payments.createPayment, {
 				restaurantId: restaurant.data._id,
-				orderId: orderId as any, // Id<"orders">
+				orderId: orderId as any,
 				method: selectedMethod,
-				amount: 0 // Will be calculated server-side from order total
+				amount: order.total
 			});
 
 			if (selectedMethod === 'cash') {
@@ -106,7 +110,7 @@
 				await convexClient.mutation(api.payments.updateStatus, {
 					id: paymentId,
 					status: 'completed',
-					externalRef: `${selectedMethod.toUpperCase()}-${Date.now()}`
+					transactionId: `${selectedMethod.toUpperCase()}-${Date.now()}`
 				});
 				success = true;
 			}

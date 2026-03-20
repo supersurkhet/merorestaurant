@@ -8,7 +8,7 @@
 	const restaurant = useQuery(api.restaurants.getBySlug, { slug: RESTAURANT_SLUG });
 
 	const wifiConfig = useQuery(
-		api.wifi.getActiveByRestaurant,
+		api.wifiConfigs.getActiveByRestaurant,
 		() => (restaurant.data?._id ? { restaurantId: restaurant.data._id } : 'skip')
 	);
 

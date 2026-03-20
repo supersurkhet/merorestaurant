@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
 	const paymentId = url.searchParams.get('paymentId');
 	const status = url.searchParams.get('status');
-	const externalRef =
+	const transactionId =
 		url.searchParams.get('transaction_id') ||
 		url.searchParams.get('refId') ||
 		url.searchParams.get('PRN');
@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		await client.mutation(api.payments.updateStatus, {
 			id: paymentId as any,
 			status: convexStatus as any,
-			externalRef: externalRef || undefined
+			transactionId: transactionId || undefined
 		});
 
 		const orderId = url.searchParams.get('orderId') || '';
@@ -55,7 +55,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 	}
 
 	const client = new ConvexHttpClient(convexUrl as string);
-	const body = await request.json().catch(() => ({})) as Record<string, any>;
+	const body = (await request.json().catch(() => ({}))) as Record<string, any>;
 	const paymentId = body.paymentId || url.searchParams.get('paymentId');
 
 	if (!paymentId) {
@@ -63,12 +63,12 @@ export const POST: RequestHandler = async ({ request, url }) => {
 	}
 
 	try {
-		const externalRef = body.transaction_id || body.refId;
+		const transactionId = body.transaction_id || body.refId;
 
 		await client.mutation(api.payments.updateStatus, {
 			id: paymentId as any,
 			status: 'completed' as any,
-			externalRef: externalRef || undefined
+			transactionId: transactionId || undefined
 		});
 
 		return json({ success: true });

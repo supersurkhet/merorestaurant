@@ -41,8 +41,7 @@
 					restaurantId: restaurant.data._id,
 					items: cart.toConvexItems(),
 					customerName: customerName || undefined,
-					notes: notes || undefined,
-					createdBy: 'customer'
+					notes: notes || undefined
 				});
 
 				cart.clearCart();

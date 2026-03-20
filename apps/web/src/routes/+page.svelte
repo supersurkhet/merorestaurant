@@ -24,7 +24,7 @@
 
 	const menuItemsQuery = useQuery(
 		api.menuItems.listByRestaurant,
-		() => (restaurant.data?._id ? { restaurantId: restaurant.data._id, availableOnly: true } : 'skip')
+		() => (restaurant.data?._id ? { restaurantId: restaurant.data._id, onlyAvailable: true } : 'skip')
 	);
 
 	// Use Convex data when available, fall back to static data
@@ -314,7 +314,7 @@
 					<div
 						class="flex h-44 items-center justify-center bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/20"
 					>
-						{#if item.imageUrl}
+						{#if item.imageUrl || item.image}
 							<img src={item.imageUrl} alt={item.name} class="h-full w-full object-cover" />
 						{:else}
 							<span class="text-7xl transition-transform duration-300 group-hover:scale-110">
@@ -340,7 +340,7 @@
 									{$t('menu.veg')}
 								</span>
 							{/if}
-							{#if item.spicy}
+							{#if item.isSpicy || item.spicy}
 								<span
 									class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300"
 								>

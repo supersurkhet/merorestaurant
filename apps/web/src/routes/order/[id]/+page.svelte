@@ -3,7 +3,6 @@
 	import { t, locale } from '$i18n';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$lib/convex-api';
-	import { RESTAURANT_SLUG } from '$lib/stores/restaurant.svelte';
 	import {
 		Clock,
 		CheckCircle2,
@@ -20,32 +19,26 @@
 
 	const orderNumber = $derived(page.params.id);
 
-	const restaurant = useQuery(api.restaurants.getBySlug, { slug: RESTAURANT_SLUG });
-
 	const orderQuery = useQuery(
 		api.orders.getByOrderNumber,
-		() =>
-			restaurant.data?._id
-				? { restaurantId: restaurant.data._id, orderNumber: orderNumber }
-				: 'skip'
+		() => ({ orderNumber: orderNumber })
 	);
 
 	const order = $derived(orderQuery.data);
 
 	// Map Convex status to stepper
-	// Convex uses: pending, confirmed, preparing, ready, served, completed, cancelled
+	// Root schema uses: placed, confirmed, preparing, ready, served, cancelled
 	const statusMap = {
-		pending: 0,
+		placed: 0,
 		confirmed: 1,
 		preparing: 2,
 		ready: 3,
 		served: 4,
-		completed: 4,
 		cancelled: -1
 	} as const;
 
 	const steps = [
-		{ id: 'pending', key: 'order.status.pending', icon: CheckCircle2 },
+		{ id: 'placed', key: 'order.status.pending', icon: CheckCircle2 },
 		{ id: 'confirmed', key: 'order.status.confirmed', icon: Bell },
 		{ id: 'preparing', key: 'order.status.preparing', icon: ChefHat },
 		{ id: 'ready', key: 'order.status.ready', icon: UtensilsCrossed },
@@ -59,9 +52,9 @@
 	function getStepTime(stepId: string): number | null {
 		if (!order) return null;
 		const map: Record<string, string> = {
-			pending: '_creationTime',
+			placed: 'placedAt',
 			confirmed: 'confirmedAt',
-			preparing: 'preparingAt',
+			preparing: 'preparedAt',
 			ready: 'readyAt',
 			served: 'servedAt'
 		};
@@ -76,9 +69,7 @@
 	}
 
 	const isCancelled = $derived(order?.status === 'cancelled');
-	const isComplete = $derived(
-		order?.status === 'served' || order?.status === 'completed'
-	);
+	const isComplete = $derived(order?.status === 'served');
 </script>
 
 <svelte:head>
@@ -268,7 +259,7 @@
 								</span>
 								<span class="font-medium text-foreground">{item.name}</span>
 							</div>
-							<span class="text-sm font-medium text-foreground">Rs. {item.totalPrice}</span>
+							<span class="text-sm font-medium text-foreground">Rs. {item.price * item.quantity}</span>
 						</div>
 					{/each}
 				</div>
@@ -288,7 +279,7 @@
 						</div>
 					</div>
 
-					{#if order.status !== 'completed' && order.status !== 'cancelled'}
+					{#if order.status !== 'served' && order.status !== 'cancelled'}
 						<a
 							href="/payment/{order._id}"
 							class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3.5 font-semibold text-white shadow-lg transition-all hover:shadow-xl"

@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAuth } from "./_helpers";
 
 export const getByOrder = query({
   args: { orderId: v.id("orders") },
@@ -22,6 +23,7 @@ export const updateStatus = mutation({
     ),
   },
   handler: async (ctx, { id, status }) => {
+    await requireAuth(ctx);
     const item = await ctx.db.get(id);
     if (!item) throw new Error("Order item not found");
     await ctx.db.patch(id, { status });

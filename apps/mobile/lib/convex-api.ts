@@ -108,4 +108,34 @@ export const api = {
       any[]
     >('orderItems:getByOrder'),
   },
+
+  payments: {
+    createPayment: makeFunctionReference<
+      'mutation',
+      {
+        restaurantId: Id<'restaurants'>;
+        orderId: Id<'orders'>;
+        method: 'cash' | 'khalti' | 'esewa' | 'fonepay';
+        amount: number;
+        externalRef?: string;
+      },
+      Id<'payments'>
+    >('payments:createPayment'),
+
+    updateStatus: makeFunctionReference<
+      'mutation',
+      {
+        id: Id<'payments'>;
+        status: 'pending' | 'completed' | 'failed' | 'refunded';
+        externalRef?: string;
+      },
+      void
+    >('payments:updateStatus'),
+
+    getByOrder: makeFunctionReference<
+      'query',
+      { orderId: Id<'orders'> },
+      any[]
+    >('payments:getByOrder'),
+  },
 } as const;

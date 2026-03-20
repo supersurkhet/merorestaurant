@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors } from '../constants/colors';
 import { convex } from '../lib/convex';
 import { RestaurantProvider } from '../lib/restaurant-context';
+import { OfflineBanner } from '../components/ui/OfflineBanner';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,6 +25,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ConvexProvider client={convex}>
         <RestaurantProvider>
+        <OfflineBanner />
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{

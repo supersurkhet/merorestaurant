@@ -24,8 +24,10 @@ export default defineSchema({
     slug: v.string(), // unique URL-safe identifier
     description: v.optional(v.string()),
     descriptionNe: v.optional(v.string()),
-    address: v.string(),
-    city: v.string(),
+    address: v.optional(v.string()),
+    city: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
     phone: v.string(),
     email: v.optional(v.string()),
     logo: v.optional(v.id("_storage")),

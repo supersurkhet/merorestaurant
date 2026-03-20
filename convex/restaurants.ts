@@ -50,32 +50,53 @@ export const getByCity = query({
   },
 });
 
+/** Auto-generate a URL-safe slug from restaurant name, with dedup */
+async function generateUniqueSlug(
+  ctx: any,
+  name: string
+): Promise<string> {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  let slug = base;
+  let suffix = 2;
+  while (true) {
+    const existing = await ctx.db
+      .query("restaurants")
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .first();
+    if (!existing) break;
+    slug = `${base}-${suffix}`;
+    suffix++;
+  }
+  return slug;
+}
+
 /** Register a new restaurant (creates tenant) */
 export const register = mutation({
   args: {
     ownerId: v.id("users"),
     name: v.string(),
     nameNe: v.optional(v.string()),
-    slug: v.string(),
-    address: v.string(),
-    city: v.string(),
     phone: v.string(),
     email: v.optional(v.string()),
+    address: v.optional(v.string()),
+    city: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
     description: v.optional(v.string()),
     descriptionNe: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx);
-    // Check slug uniqueness
-    const existing = await ctx.db
-      .query("restaurants")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .first();
-    if (existing) throw new Error("A restaurant with this slug already exists");
+    // Auto-generate unique slug from name
+    const slug = await generateUniqueSlug(ctx, args.name);
 
     const restaurantId = await ctx.db.insert("restaurants", {
       ...args,
-      isActive: false, // not live until onboarding complete
+      slug,
+      isActive: false,
       openingTime: "07:00",
       closingTime: "22:00",
       currency: "NPR",
@@ -113,6 +134,8 @@ export const update = mutation({
     descriptionNe: v.optional(v.string()),
     address: v.optional(v.string()),
     city: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
     logo: v.optional(v.id("_storage")),

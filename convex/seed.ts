@@ -31,6 +31,8 @@ export const seedDatabase = internalMutation({
       descriptionNe: "सुर्खेतको मुटुमा प्रामाणिक नेपाली खाना",
       address: "Birendranagar-10, Surkhet, Nepal",
       city: "Surkhet",
+      latitude: 28.6083,
+      longitude: 81.6350,
       phone: "+977-083-520123",
       email: "hello@merorestaurant.com",
       isActive: true,

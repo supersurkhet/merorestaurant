@@ -20,7 +20,7 @@ const khaltiClient = new KhaltiClient({
   secretKey: KHALTI_SECRET,
   environment: 'sandbox',
   returnUrl: RETURN_URL,
-  websiteUrl: 'https://restaurant.surkhet.app',
+  websiteUrl: process.env.EXPO_PUBLIC_APP_URL ?? 'https://merorestaurant.app',
 });
 
 const esewaClient = new EsewaClient({

@@ -3,11 +3,14 @@ import Constants from 'expo-constants';
 
 const CONVEX_URL =
   Constants.expoConfig?.extra?.convexUrl ??
-  process.env.EXPO_PUBLIC_CONVEX_URL ??
-  '';
+  process.env.EXPO_PUBLIC_CONVEX_URL;
 
 if (!CONVEX_URL) {
-  console.warn('[Convex] No CONVEX_URL configured. Set EXPO_PUBLIC_CONVEX_URL in .env');
+  console.warn('[Convex] EXPO_PUBLIC_CONVEX_URL not set. Set it in .env or app.json extra.');
 }
 
-export const convex = new ConvexReactClient(CONVEX_URL || 'https://unconfigured.convex.cloud');
+// ConvexReactClient requires a non-empty URL; provide a noop fallback
+// that will fail at query time with a clear error rather than crashing init.
+export const convex = new ConvexReactClient(
+  CONVEX_URL || 'https://not-configured.convex.cloud',
+);

@@ -12,7 +12,7 @@ export const en = {
   home: {
     welcome: 'Welcome to',
     title: 'Mero Restaurant',
-    subtitle: "Surkhet's finest dining experience",
+    subtitle: 'Scan, order, and pay at any restaurant',
     scanQr: 'Scan Table QR',
     scanQrDesc: 'Auto-connect to WiFi & start ordering',
     quickActions: 'Quick Actions',

@@ -64,7 +64,8 @@ export const api = {
 		getByOrder: ref('payments:getByOrder') as Q,
 		listByRestaurant: ref('payments:listByRestaurant') as Q,
 		createPayment: ref('payments:createPayment') as M,
-		updateStatus: ref('payments:updateStatus') as M
+		updateStatus: ref('payments:updateStatus') as M,
+		verifyKhalti: ref('payments:verifyKhalti') as M
 	},
 	staff: {
 		listByRestaurant: ref('staff:listByRestaurant') as Q,
@@ -78,6 +79,12 @@ export const api = {
 		getActiveByRestaurant: ref('wifiConfigs:getActiveByRestaurant') as Q,
 		getByRestaurant: ref('wifiConfigs:getByRestaurant') as Q,
 		update: ref('wifiConfigs:update') as M
+	},
+	analytics: {
+		getDailyRevenue: ref('analytics:getDailyRevenue') as Q,
+		getPopularItems: ref('analytics:getPopularItems') as Q,
+		getOrdersByHour: ref('analytics:getOrdersByHour') as Q,
+		getPaymentBreakdown: ref('analytics:getPaymentBreakdown') as Q
 	},
 	auth: {
 		loginOrSignup: ref('auth:loginOrSignup') as M,

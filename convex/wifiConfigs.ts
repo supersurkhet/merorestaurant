@@ -1,17 +1,17 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireRole } from "./_helpers";
+import { requireAuth, requireRole } from "./_helpers";
 
 export const getActiveByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
   handler: async (ctx, { restaurantId }) => {
+    await requireAuth(ctx);
     const config = await ctx.db
       .query("wifiConfigs")
       .withIndex("by_restaurant", (q) => q.eq("restaurantId", restaurantId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .first();
     if (!config) return null;
-    // Generate WiFi QR string
     const qrString = `WIFI:T:${config.encryptionType};S:${config.ssid};P:${config.password};;`;
     return { ...config, qrString };
   },
@@ -20,6 +20,7 @@ export const getActiveByRestaurant = query({
 export const getByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
   handler: async (ctx, { restaurantId }) => {
+    await requireRole(ctx, restaurantId as string, ["owner", "manager"]);
     return await ctx.db
       .query("wifiConfigs")
       .withIndex("by_restaurant", (q) => q.eq("restaurantId", restaurantId))
@@ -40,7 +41,7 @@ export const update = mutation({
     ),
   },
   handler: async (ctx, { restaurantId, ssid, password, encryptionType }) => {
-    await requireRole(ctx, restaurantId, ["owner", "manager"]);
+    await requireRole(ctx, restaurantId as string, ["owner", "manager"]);
     // Deactivate existing configs
     const existing = await ctx.db
       .query("wifiConfigs")

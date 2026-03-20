@@ -244,6 +244,32 @@ export const seedDatabase = internalMutation({
       updatedBy: "seed-owner",
     });
 
+    // 7. Staff members
+    await ctx.db.insert("staff", {
+      restaurantId,
+      workosUserId: "workos-rajesh",
+      name: "Rajesh Sharma",
+      email: "rajesh@merorestaurant.com",
+      role: "owner",
+      isActive: true,
+    });
+    await ctx.db.insert("staff", {
+      restaurantId,
+      workosUserId: "workos-suman",
+      name: "Suman Thapa",
+      email: "suman@merorestaurant.com",
+      role: "manager",
+      isActive: true,
+    });
+    await ctx.db.insert("staff", {
+      restaurantId,
+      workosUserId: "workos-kumar",
+      name: "Kumar Bhandari",
+      email: "kumar@merorestaurant.com",
+      role: "kitchen",
+      isActive: true,
+    });
+
     return { restaurantId, menuId };
   },
 });

@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
     });
   }
 
-  const session = decodeSession(sessionCookie);
+  const session = await decodeSession(sessionCookie);
   if (!session || session.expiresAt < Date.now()) {
     cookies.delete(SESSION_COOKIE, { path: "/" });
     return new Response(JSON.stringify({ user: null }), {

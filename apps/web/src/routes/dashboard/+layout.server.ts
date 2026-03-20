@@ -1,9 +1,6 @@
-import { redirect } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "./$types";
 
+// Auth is enforced by hooks.server.ts — if we get here, user is authenticated
 export const load: LayoutServerLoad = async ({ locals }) => {
-  if (!locals.user) {
-    redirect(302, "/api/auth/login?returnTo=/dashboard");
-  }
-  return { user: locals.user };
+  return { user: locals.user! };
 };

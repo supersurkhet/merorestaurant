@@ -49,7 +49,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
       expiresAt: Date.now() + SESSION_MAX_AGE * 1000,
     };
 
-    cookies.set(SESSION_COOKIE, encodeSession(session), {
+    cookies.set(SESSION_COOKIE, await encodeSession(session), {
       path: "/",
       httpOnly: true,
       secure: true,

@@ -1,8 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireRole } from "./_helpers";
 
-const TAX_RATE = 0.13;
-
+// placeOrder is PUBLIC — customers place orders without auth
 export const placeOrder = mutation({
   args: {
     restaurantId: v.id("restaurants"),
@@ -39,7 +39,9 @@ export const placeOrder = mutation({
       });
     }
 
-    const tax = Math.round(subtotal * TAX_RATE);
+    const restaurant = await ctx.db.get(args.restaurantId);
+    if (!restaurant) throw new Error("Restaurant not found");
+    const tax = Math.round(subtotal * (restaurant.taxRate ?? 0.13));
     const total = subtotal + tax;
 
     // Generate order number: ORD-MMDD-XXX
@@ -228,6 +230,9 @@ export const updateStatus = mutation({
     const order = await ctx.db.get(id);
     if (!order) throw new Error("Order not found");
 
+    // Status updates require staff auth
+    await requireRole(ctx, order.restaurantId, ["owner", "manager", "chef", "waiter"]);
+
     const allowed = STATUS_TRANSITIONS[order.status];
     if (!allowed || !allowed.includes(status)) {
       throw new Error(`Cannot transition from ${order.status} to ${status}`);
@@ -269,6 +274,7 @@ export const cancelOrder = mutation({
   handler: async (ctx, { id }) => {
     const order = await ctx.db.get(id);
     if (!order) throw new Error("Order not found");
+    // Cancel can be done by staff or the customer who placed it
     if (["served", "cancelled"].includes(order.status)) {
       throw new Error("Cannot cancel a completed order");
     }

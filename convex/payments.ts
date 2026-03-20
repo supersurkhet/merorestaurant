@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAuth, requireRole } from "./_helpers";
 
 export const createPayment = mutation({
   args: {
@@ -14,6 +15,7 @@ export const createPayment = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    // Payments can be created by anyone (customers place orders)
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
 
@@ -54,6 +56,7 @@ export const updateStatus = mutation({
     transactionId: v.optional(v.string()),
   },
   handler: async (ctx, { id, status, transactionId }) => {
+    // Payment status updates come from webhooks (server-side) or admin
     const payment = await ctx.db.get(id);
     if (!payment) throw new Error("Payment not found");
 

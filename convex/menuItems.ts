@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAuth, requireRole } from "./_helpers";
 
 export const listByRestaurant = query({
   args: {
@@ -55,6 +56,7 @@ export const create = mutation({
     sortOrder: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, args.restaurantId, ["owner", "manager"]);
     return await ctx.db.insert("menuItems", { ...args, isAvailable: true });
   },
 });
@@ -78,6 +80,7 @@ export const update = mutation({
   handler: async (ctx, { id, ...updates }) => {
     const item = await ctx.db.get(id);
     if (!item) throw new Error("Menu item not found");
+    await requireRole(ctx, item.restaurantId, ["owner", "manager"]);
     const filtered = Object.fromEntries(
       Object.entries(updates).filter(([, v]) => v !== undefined)
     );
@@ -88,6 +91,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("menuItems") },
   handler: async (ctx, { id }) => {
+    const item = await ctx.db.get(id);
+    if (!item) throw new Error("Menu item not found");
+    await requireRole(ctx, item.restaurantId, ["owner", "manager"]);
     await ctx.db.delete(id);
   },
 });
@@ -97,6 +103,7 @@ export const toggleAvailability = mutation({
   handler: async (ctx, { id }) => {
     const item = await ctx.db.get(id);
     if (!item) throw new Error("Menu item not found");
+    await requireRole(ctx, item.restaurantId, ["owner", "manager", "chef"]);
     await ctx.db.patch(id, { isAvailable: !item.isAvailable });
   },
 });
@@ -104,6 +111,7 @@ export const toggleAvailability = mutation({
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });

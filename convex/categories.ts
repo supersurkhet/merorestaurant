@@ -1,6 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireRole } from "./_helpers";
 
+// Queries are PUBLIC — customers browse menus without auth
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
   handler: async (ctx, { restaurantId }) => {
@@ -25,16 +27,22 @@ export const listActiveByRestaurant = query({
   },
 });
 
+// Mutations require admin auth
 export const create = mutation({
   args: {
     restaurantId: v.id("restaurants"),
     name: v.string(),
-    nameNe: v.string(),
+    nameNe: v.optional(v.string()),
     description: v.optional(v.string()),
     sortOrder: v.number(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("categories", { ...args, isActive: true });
+    await requireRole(ctx, args.restaurantId, ["owner", "manager"]);
+    return await ctx.db.insert("categories", {
+      ...args,
+      nameNe: args.nameNe ?? args.name,
+      isActive: true,
+    });
   },
 });
 
@@ -51,6 +59,7 @@ export const update = mutation({
   handler: async (ctx, { id, ...updates }) => {
     const cat = await ctx.db.get(id);
     if (!cat) throw new Error("Category not found");
+    await requireRole(ctx, cat.restaurantId, ["owner", "manager"]);
     const filtered = Object.fromEntries(
       Object.entries(updates).filter(([, v]) => v !== undefined)
     );
@@ -61,6 +70,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("categories") },
   handler: async (ctx, { id }) => {
+    const cat = await ctx.db.get(id);
+    if (!cat) throw new Error("Category not found");
+    await requireRole(ctx, cat.restaurantId, ["owner", "manager"]);
     const items = await ctx.db
       .query("menuItems")
       .withIndex("by_category", (q) => q.eq("categoryId", id))

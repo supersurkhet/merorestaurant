@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAuth, requireRole } from "./_helpers";
 
 export const getBySlug = query({
   args: { slug: v.string() },
@@ -64,6 +65,7 @@ export const register = mutation({
     descriptionNe: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx);
     // Check slug uniqueness
     const existing = await ctx.db
       .query("restaurants")
@@ -121,6 +123,7 @@ export const update = mutation({
     taxRate: v.optional(v.number()),
   },
   handler: async (ctx, { id, ...updates }) => {
+    await requireRole(ctx, id, ["owner", "manager"]);
     const restaurant = await ctx.db.get(id);
     if (!restaurant) throw new Error("Restaurant not found");
     const filtered = Object.fromEntries(
@@ -142,6 +145,7 @@ export const advanceOnboarding = mutation({
     ),
   },
   handler: async (ctx, { id, status }) => {
+    await requireRole(ctx, id, ["owner", "manager"]);
     const restaurant = await ctx.db.get(id);
     if (!restaurant) throw new Error("Restaurant not found");
     const updates: Record<string, unknown> = { onboardingStatus: status };
@@ -164,6 +168,7 @@ export const updateSubscription = mutation({
     ),
   },
   handler: async (ctx, { id, tier }) => {
+    await requireRole(ctx, id, ["owner"]);
     await ctx.db.patch(id, { subscriptionTier: tier });
   },
 });

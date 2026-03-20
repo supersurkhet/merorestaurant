@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireRole } from "./_helpers";
 
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -45,6 +46,7 @@ export const create = mutation({
     capacity: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, args.restaurantId, ["owner", "manager"]);
     const qrCode = `${args.restaurantId}-table-${args.number}`;
     return await ctx.db.insert("tables", {
       ...args,
@@ -64,6 +66,7 @@ export const update = mutation({
   handler: async (ctx, { id, ...updates }) => {
     const table = await ctx.db.get(id);
     if (!table) throw new Error("Table not found");
+    await requireRole(ctx, table.restaurantId, ["owner", "manager"]);
     const filtered = Object.fromEntries(
       Object.entries(updates).filter(([, v]) => v !== undefined)
     );
@@ -83,6 +86,7 @@ export const updateStatus = mutation({
   handler: async (ctx, { id, status }) => {
     const table = await ctx.db.get(id);
     if (!table) throw new Error("Table not found");
+    await requireRole(ctx, table.restaurantId, ["owner", "manager", "waiter"]);
     await ctx.db.patch(id, { status });
   },
 });
@@ -90,6 +94,9 @@ export const updateStatus = mutation({
 export const remove = mutation({
   args: { id: v.id("tables") },
   handler: async (ctx, { id }) => {
+    const table = await ctx.db.get(id);
+    if (!table) throw new Error("Table not found");
+    await requireRole(ctx, table.restaurantId, ["owner", "manager"]);
     await ctx.db.delete(id);
   },
 });

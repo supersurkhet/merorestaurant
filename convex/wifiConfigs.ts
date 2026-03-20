@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireRole } from "./_helpers";
 
 export const getActiveByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -39,6 +40,7 @@ export const update = mutation({
     ),
   },
   handler: async (ctx, { restaurantId, ssid, password, encryptionType }) => {
+    await requireRole(ctx, restaurantId, ["owner", "manager"]);
     // Deactivate existing configs
     const existing = await ctx.db
       .query("wifiConfigs")

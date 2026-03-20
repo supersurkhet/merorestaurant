@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireRole } from "./_helpers";
 
 export const listByRestaurant = query({
   args: {
@@ -55,6 +56,7 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, args.restaurantId, ["owner", "manager"]);
     // Check for duplicate WorkOS user
     const existing = await ctx.db
       .query("staff")
@@ -83,6 +85,7 @@ export const update = mutation({
   handler: async (ctx, { id, ...updates }) => {
     const member = await ctx.db.get(id);
     if (!member) throw new Error("Staff member not found");
+    await requireRole(ctx, member.restaurantId, ["owner", "manager"]);
     const filtered = Object.fromEntries(
       Object.entries(updates).filter(([, v]) => v !== undefined)
     );
@@ -95,6 +98,7 @@ export const toggleActive = mutation({
   handler: async (ctx, { id }) => {
     const member = await ctx.db.get(id);
     if (!member) throw new Error("Staff member not found");
+    await requireRole(ctx, member.restaurantId, ["owner", "manager"]);
     await ctx.db.patch(id, { isActive: !member.isActive });
   },
 });
@@ -102,6 +106,9 @@ export const toggleActive = mutation({
 export const remove = mutation({
   args: { id: v.id("staff") },
   handler: async (ctx, { id }) => {
+    const member = await ctx.db.get(id);
+    if (!member) throw new Error("Staff member not found");
+    await requireRole(ctx, member.restaurantId, ["owner"]);
     await ctx.db.delete(id);
   },
 });

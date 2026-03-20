@@ -12,20 +12,35 @@ export const seedDatabase = internalMutation({
       return;
     }
 
-    // 1. Create restaurant
+    // 0. Create demo owner user
+    const ownerId = await ctx.db.insert("users", {
+      workosUserId: "workos_demo_owner",
+      email: "rajesh@merorestaurant.com",
+      name: "Rajesh Sharma",
+      phone: "+977-9858012345",
+      createdAt: Date.now(),
+    });
+
+    // 1. Create restaurant (tenant)
     const restaurantId = await ctx.db.insert("restaurants", {
+      ownerId,
       name: "Mero Restaurant",
       nameNe: "मेरो रेस्टुरेन्ट",
       slug: "mero-restaurant",
       description: "Authentic Nepali cuisine in the heart of Surkhet",
       descriptionNe: "सुर्खेतको मुटुमा प्रामाणिक नेपाली खाना",
       address: "Birendranagar-10, Surkhet, Nepal",
+      city: "Surkhet",
       phone: "+977-083-520123",
       email: "hello@merorestaurant.com",
       isActive: true,
       openingTime: "07:00",
       closingTime: "21:00",
       currency: "NPR",
+      taxRate: 0.13,
+      subscriptionTier: "pro",
+      onboardingStatus: "operational",
+      createdAt: Date.now(),
     });
 
     // 2. Create categories
@@ -106,10 +121,11 @@ export const seedDatabase = internalMutation({
       updatedAt: Date.now(),
     });
 
-    // 6. Create staff
+    // 6. Create staff (owner is auto-created by register, but seed directly)
     await ctx.db.insert("staff", {
       restaurantId,
-      workosUserId: "workos_owner_001",
+      userId: ownerId,
+      workosUserId: "workos_demo_owner",
       name: "Rajesh Sharma",
       email: "rajesh@merorestaurant.com",
       role: "owner",

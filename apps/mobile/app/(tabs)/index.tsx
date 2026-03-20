@@ -20,108 +20,51 @@ import {
 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInRight, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useCartStore } from '../../store/cart';
 import { useI18n } from '../../lib/i18n';
+import { useRestaurant } from '../../lib/restaurant-context';
+import { api } from '../../lib/convex-api';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import type { MenuItem } from '../../lib/convex-types';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = SCREEN_W * 0.65;
 
-// Featured items — will come from Convex
-const FEATURED = [
-  {
-    id: '1',
-    name: 'Chicken Momo',
-    nameNe: 'चिकन मोमो',
-    desc: 'Hand-folded dumplings with spicy achar',
-    price: 250,
-    emoji: '🥟',
-    gradient: ['#dc2626', '#b91c1c'],
-  },
-  {
-    id: '7',
-    name: 'Thakali Set',
-    nameNe: 'थकाली खाना सेट',
-    desc: 'Authentic Thakali thali — a complete meal',
-    price: 500,
-    emoji: '🍛',
-    gradient: ['#d97706', '#b45309'],
-  },
-  {
-    id: '6',
-    name: 'Tandoori Chicken',
-    nameNe: 'तन्दुरी चिकन',
-    desc: 'Clay oven roasted with yogurt spices',
-    price: 550,
-    emoji: '🍗',
-    gradient: ['#ea580c', '#c2410c'],
-  },
-  {
-    id: '9',
-    name: 'Lassi',
-    nameNe: 'लस्सी',
-    desc: 'Creamy yogurt drink with cardamom',
-    price: 150,
-    emoji: '🥛',
-    gradient: ['#0891b2', '#0e7490'],
-  },
-];
-
-// Today's specials
-const SPECIALS = [
-  {
-    id: 's1',
-    name: 'Sekuwa Platter',
-    nameNe: 'सेकुवा प्लेट',
-    desc: 'Grilled meat platter with Surkhet special spices',
-    price: 650,
-    tag: "Chef's Pick",
-    emoji: '🔥',
-  },
-  {
-    id: 's2',
-    name: 'Newari Khaja Set',
-    nameNe: 'नेवारी खाजा सेट',
-    desc: 'Traditional beaten rice set with choyla, bara & aloo',
-    price: 400,
-    tag: 'Popular',
-    emoji: '🍽️',
-  },
-  {
-    id: 's3',
-    name: 'Sel Roti + Tea',
-    nameNe: 'सेल रोटी + चिया',
-    desc: 'Crispy ring bread with masala chiya',
-    price: 120,
-    tag: 'Snack',
-    emoji: '🫖',
-  },
+const GRADIENT_COLORS = [
+  ['#dc2626', '#b91c1c'],
+  ['#d97706', '#b45309'],
+  ['#ea580c', '#c2410c'],
+  ['#0891b2', '#0e7490'],
+  ['#7c3aed', '#6d28d9'],
+  ['#059669', '#047857'],
 ];
 
 function FeaturedCard({
   item,
   index,
 }: {
-  item: (typeof FEATURED)[0];
+  item: MenuItem;
   index: number;
 }) {
   const addItem = useCartStore((s) => s.addItem);
+  const gradient = GRADIENT_COLORS[index % GRADIENT_COLORS.length];
 
   return (
     <Animated.View entering={FadeInRight.delay(100 + index * 100).duration(400)}>
       <Pressable
-        style={[styles.featuredCard, { backgroundColor: item.gradient[0] }]}
+        style={[styles.featuredCard, { backgroundColor: gradient[0] }]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          addItem({ menuItemId: item.id, name: item.name, nameNe: item.nameNe, price: item.price });
+          addItem({ menuItemId: item._id, name: item.name, nameNe: item.nameNe, price: item.price });
         }}
       >
-        <Text style={styles.featuredEmoji}>{item.emoji}</Text>
+        <Text style={styles.featuredEmoji}>{item.isVeg ? '🥬' : item.isSpicy ? '🌶️' : '🍽️'}</Text>
         <View style={styles.featuredInfo}>
           <Text style={styles.featuredName}>{item.name}</Text>
           <Text style={styles.featuredNameNe}>{item.nameNe}</Text>
-          <Text style={styles.featuredDesc} numberOfLines={2}>{item.desc}</Text>
+          <Text style={styles.featuredDesc} numberOfLines={2}>{item.description ?? ''}</Text>
         </View>
         <View style={styles.featuredBottom}>
           <Text style={styles.featuredPrice}>Rs. {item.price}</Text>
@@ -138,8 +81,19 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useThemeColor();
   const { t } = useI18n();
+  const { restaurantId } = useRestaurant();
   const addItem = useCartStore((s) => s.addItem);
   const cartCount = useCartStore((s) => s.itemCount());
+
+  // Fetch menu items from Convex
+  const allItems = useQuery(
+    api.menuItems.listByRestaurant,
+    restaurantId ? { restaurantId, onlyAvailable: true } : 'skip',
+  ) as MenuItem[] | undefined;
+
+  // Derive featured (first 4) and specials (next 3) from real data
+  const featured = allItems?.slice(0, 4) ?? [];
+  const specials = allItems?.slice(4, 7) ?? [];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -238,8 +192,8 @@ export default function HomeScreen() {
           </View>
 
           <FlatList
-            data={FEATURED}
-            keyExtractor={(item) => item.id}
+            data={featured}
+            keyExtractor={(item) => item._id}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.carousel}
@@ -261,9 +215,9 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.specialsList}>
-            {SPECIALS.map((item, index) => (
+            {specials.map((item: MenuItem, index: number) => (
               <Animated.View
-                key={item.id}
+                key={item._id}
                 entering={FadeInDown.delay(450 + index * 80).duration(300)}
               >
                 <Pressable
@@ -271,20 +225,22 @@ export default function HomeScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     addItem({
-                      menuItemId: item.id,
+                      menuItemId: item._id,
                       name: item.name,
                       nameNe: item.nameNe,
                       price: item.price,
                     });
                   }}
                 >
-                  <Text style={styles.specialEmoji}>{item.emoji}</Text>
+                  <Text style={styles.specialEmoji}>{item.isVeg ? '🥬' : item.isSpicy ? '🌶️' : '🍛'}</Text>
                   <View style={styles.specialInfo}>
                     <View style={styles.specialTop}>
                       <Text style={[styles.specialName, { color: colors.text }]}>{item.name}</Text>
-                      <View style={[styles.specialTag, { backgroundColor: '#fef3c7' }]}>
-                        <Text style={styles.specialTagText}>{item.tag}</Text>
-                      </View>
+                      {item.isVeg && (
+                        <View style={[styles.specialTag, { backgroundColor: '#ecfdf5' }]}>
+                          <Text style={[styles.specialTagText, { color: '#059669' }]}>Veg</Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={[styles.specialNameNe, { color: colors.textSecondary }]}>
                       {item.nameNe}
@@ -293,7 +249,7 @@ export default function HomeScreen() {
                       style={[styles.specialDesc, { color: colors.textSecondary }]}
                       numberOfLines={1}
                     >
-                      {item.desc}
+                      {item.description ?? ''}
                     </Text>
                     <Text style={[styles.specialPrice, { color: colors.primary }]}>
                       Rs. {item.price}

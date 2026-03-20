@@ -18,12 +18,11 @@ import Animated, {
 import { useQuery } from 'convex/react';
 import { useCartStore } from '../../store/cart';
 import { api } from '../../lib/convex-api';
-import type { Table as ConvexTable, WifiConfig } from '../../lib/convex-types';
 
 interface QrPayload {
-  restaurantId: string;
-  tableId: string;
-  qrCode?: string;
+  restaurantId?: string;
+  tableId?: string;
+  qrCode: string;
 }
 
 export default function ScanScreen() {
@@ -34,16 +33,11 @@ export default function ScanScreen() {
   const [phase, setPhase] = useState<'scanning' | 'success' | 'connecting'>('scanning');
   const setTable = useCartStore((s) => s.setTable);
 
-  // Convex queries — activated after scan
-  const tableInfo = useQuery(
+  // Single Convex query — returns { table, restaurant, wifi } after scan
+  const qrResult = useQuery(
     api.tables.getByQrCode,
     scanResult?.qrCode ? { qrCode: scanResult.qrCode } : 'skip',
-  ) as ConvexTable | null | undefined;
-
-  const wifiConfig = useQuery(
-    api.wifi.getActiveByRestaurant,
-    scanResult?.restaurantId ? { restaurantId: scanResult.restaurantId as any } : 'skip',
-  ) as WifiConfig | null | undefined;
+  ) as { table: any; restaurant: any; wifi: any | null } | null | undefined;
 
   // Animated scan line
   const scanLineY = useSharedValue(-120);
@@ -73,52 +67,64 @@ export default function ScanScreen() {
     setScanned(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    let payload: QrPayload;
+    // QR can be JSON with {qrCode, restaurantId, tableId} or just a plain qrCode string
+    let qrCode: string;
     try {
-      payload = JSON.parse(data);
-      if (!payload.restaurantId || !payload.tableId) {
-        throw new Error('Missing required fields');
-      }
+      const parsed = JSON.parse(data);
+      qrCode = parsed.qrCode ?? parsed.tableId ?? data;
     } catch {
+      // Not JSON — treat the raw string as the qrCode
+      qrCode = data;
+    }
+
+    if (!qrCode) {
       Alert.alert(
         'Invalid QR Code',
-        'This doesn\'t look like a Mero Restaurant table QR code. Please try scanning the QR on your table.',
+        'This doesn\'t look like a Mero Restaurant table QR code.',
         [{ text: 'Try Again', onPress: () => setScanned(false) }],
       );
       return;
     }
 
-    // If there's a qrCode field, use it; otherwise use tableId as fallback
-    if (!payload.qrCode) {
-      payload.qrCode = payload.tableId;
-    }
-
-    console.log('[Scan] QR scanned:', payload);
-    setScanResult(payload);
+    console.log('[Scan] QR scanned, qrCode:', qrCode);
+    setScanResult({ qrCode });
     setPhase('success');
 
-    // Pulse the success icon
     pulse.value = withSequence(
       withTiming(1.3, { duration: 200 }),
       withTiming(1, { duration: 200 }),
     );
+  }, [scanned, pulse]);
 
-    // Store table in cart
-    setTable(payload.tableId, payload.restaurantId);
-  }, [scanned, setTable, pulse]);
-
-  // When table info loads from Convex, show WiFi connect or navigate
+  // When Convex returns table+restaurant+wifi info, store table and navigate
   useEffect(() => {
-    if (phase !== 'success') return;
-    // Wait a beat for the success animation
-    const timer = setTimeout(() => {
-      const tableLabel = tableInfo?.label ?? `Table ${tableInfo?.number ?? ''}`;
+    if (phase !== 'success' || qrResult === undefined) return; // still loading
+    if (qrResult === null) {
+      // QR code not found in database
+      Alert.alert(
+        'Unknown Table',
+        'This QR code is not recognized. Please ask staff for help.',
+        [{ text: 'OK', onPress: () => { setScanned(false); setPhase('scanning'); setScanResult(null); } }],
+      );
+      return;
+    }
 
-      if (wifiConfig?.ssid) {
+    const { table, restaurant, wifi } = qrResult;
+    console.log('[Scan] Convex lookup:', { table: table?.label, restaurant: restaurant?.name, wifi: !!wifi });
+
+    // Store table + restaurant in cart
+    if (table?._id && table?.restaurantId) {
+      setTable(table._id, table.restaurantId);
+    }
+
+    const tableLabel = table?.label ?? `Table ${table?.number ?? ''}`;
+
+    const timer = setTimeout(() => {
+      if (wifi?.ssid) {
         setPhase('connecting');
         Alert.alert(
           `Welcome to ${tableLabel}!`,
-          `Connect to WiFi "${wifiConfig.ssid}" and start ordering?`,
+          `Connect to WiFi "${wifi.ssid}" and start ordering?`,
           [
             {
               text: 'Connect & Order',
@@ -136,9 +142,9 @@ export default function ScanScreen() {
       } else {
         router.replace('/(tabs)/menu');
       }
-    }, 1800);
+    }, 1500);
     return () => clearTimeout(timer);
-  }, [phase, tableInfo, wifiConfig, router]);
+  }, [phase, qrResult, setTable, router]);
 
   // Permission loading
   if (!permission) {
@@ -172,7 +178,7 @@ export default function ScanScreen() {
 
   // Success phase
   if (phase === 'success' || phase === 'connecting') {
-    const tableLabel = tableInfo?.label ?? `Table ${tableInfo?.number ?? ''}`;
+    const tableLabel = qrResult?.table?.label ?? `Table ${qrResult?.table?.number ?? ''}`;
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.centerContent}>
@@ -190,11 +196,11 @@ export default function ScanScreen() {
               {phase === 'connecting' ? 'Connecting...' : 'Table Found!'}
             </Text>
             <Text style={styles.successTable}>{tableLabel}</Text>
-            {wifiConfig?.ssid && (
+            {qrResult?.wifi?.ssid && (
               <View style={styles.wifiInfo}>
                 <Wifi size={16} color="#92400e" />
                 <Text style={styles.wifiText}>
-                  WiFi: {wifiConfig.ssid}
+                  WiFi: {qrResult?.wifi.ssid}
                 </Text>
               </View>
             )}

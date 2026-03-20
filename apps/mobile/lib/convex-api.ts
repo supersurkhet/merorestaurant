@@ -106,17 +106,23 @@ export const api = {
     >('orderItems:getByOrder'),
   },
 
-  // These are in apps/web/convex/ — may not be deployed to root yet
-  // Calls will fail gracefully if functions don't exist on the deployment
   tables: {
-    getByQrCode: makeFunctionReference<'query', { qrCode: string }, any | null>(
-      'tables:getByQrCode',
-    ),
+    // Returns { table, restaurant, wifi } — all info needed after QR scan
+    getByQrCode: makeFunctionReference<
+      'query',
+      { qrCode: string },
+      { table: any; restaurant: any; wifi: any | null } | null
+    >('tables:getByQrCode'),
+
     listByRestaurant: makeFunctionReference<
       'query',
       { restaurantId: Id<'restaurants'> },
       any[]
     >('tables:listByRestaurant'),
+
+    get: makeFunctionReference<'query', { id: Id<'tables'> }, any | null>(
+      'tables:get',
+    ),
   },
 
   wifi: {
@@ -124,18 +130,17 @@ export const api = {
       'query',
       { restaurantId: Id<'restaurants'> },
       any | null
-    >('wifi:getActiveByRestaurant'),
+    >('wifiConfigs:getActiveByRestaurant'),
   },
 
   payments: {
     createPayment: makeFunctionReference<
       'mutation',
       {
-        restaurantId: Id<'restaurants'>;
         orderId: Id<'orders'>;
-        method: 'cash' | 'khalti' | 'esewa' | 'fonepay';
+        restaurantId: Id<'restaurants'>;
         amount: number;
-        externalRef?: string;
+        method: 'cash' | 'khalti' | 'esewa' | 'fonepay';
       },
       Id<'payments'>
     >('payments:createPayment'),
@@ -144,8 +149,8 @@ export const api = {
       'mutation',
       {
         id: Id<'payments'>;
-        status: 'pending' | 'completed' | 'failed' | 'refunded';
-        externalRef?: string;
+        status: 'completed' | 'failed' | 'refunded';
+        transactionId?: string;
       },
       void
     >('payments:updateStatus'),

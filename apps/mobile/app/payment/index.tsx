@@ -83,7 +83,7 @@ export default function PaymentScreen() {
           await updatePaymentStatus({
             id: paymentId as Id<'payments'>,
             status: 'completed',
-            externalRef: khaltiRes.pidx,
+            transactionId: khaltiRes.pidx,
           });
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.dismiss();
@@ -104,7 +104,7 @@ export default function PaymentScreen() {
           await updatePaymentStatus({
             id: paymentId as Id<'payments'>,
             status: 'completed',
-            externalRef: orderId,
+            transactionId: orderId,
           });
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.dismiss();
@@ -120,7 +120,7 @@ export default function PaymentScreen() {
         await updatePaymentStatus({
           id: paymentId as Id<'payments'>,
           status: 'completed',
-          externalRef: `fonepay-${orderId}`,
+          transactionId: `fonepay-${orderId}`,
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.dismiss();

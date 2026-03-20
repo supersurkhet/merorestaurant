@@ -44,7 +44,9 @@ export interface MenuItem {
   imageStorageId?: string;
   imageUrl?: string | null;
   isVeg: boolean;
+  isSpicy: boolean;
   isAvailable: boolean;
+  preparationTime?: number;
   sortOrder: number;
 }
 

@@ -65,7 +65,7 @@ export default function LoginScreen() {
           </Pressable>
 
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            Sign in with your email, Google, or social account via WorkOS AuthKit
+            Sign in with your email, Google, or social account
           </Text>
         </Animated.View>
       </View>

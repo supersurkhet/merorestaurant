@@ -18,8 +18,8 @@ export function getClientId(): string {
   return clientId;
 }
 
-export function getRedirectUri(): string {
-  return env.PUBLIC_WORKOS_REDIRECT_URI ?? "http://localhost:5173/api/auth/callback";
+export function getRedirectUri(origin?: string): string {
+  return env.PUBLIC_WORKOS_REDIRECT_URI ?? `${origin ?? "http://localhost:5001"}/api/auth/callback`;
 }
 
 // ─── Session ───────────────────────────────────────────────────────

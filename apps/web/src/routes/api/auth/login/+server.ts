@@ -5,7 +5,7 @@ import { getWorkOS, getClientId, getRedirectUri } from "$lib/server/workos";
 export const GET: RequestHandler = async ({ url }) => {
   const workos = getWorkOS();
   const clientId = getClientId();
-  const redirectUri = getRedirectUri();
+  const redirectUri = getRedirectUri(url.origin);
 
   // Optional: pass a return URL to redirect after login
   const returnTo = url.searchParams.get("returnTo") ?? "/dashboard";

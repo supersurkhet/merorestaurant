@@ -1,35 +1,73 @@
 <script lang="ts">
 	import { t, locale } from '$i18n';
-	import { menuItems, categories } from '$lib/menu-data';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$lib/convex-api';
+	import { RESTAURANT_SLUG } from '$lib/stores/restaurant.svelte';
+	import { menuItems as fallbackItems, categories as fallbackCategories } from '$lib/menu-data';
 	import { cart } from '$lib/stores/cart.svelte';
 	import { Star, Leaf, Flame, Plus, Minus, ShoppingCart, Check } from 'lucide-svelte';
+
+	const restaurant = useQuery(api.restaurants.getBySlug, { slug: RESTAURANT_SLUG });
+
+	const categoriesQuery = useQuery(
+		api.categories.listByRestaurant,
+		() => (restaurant.data?._id ? { restaurantId: restaurant.data._id } : 'skip')
+	);
+
+	const menuItemsQuery = useQuery(
+		api.menuItems.listByRestaurant,
+		() => (restaurant.data?._id ? { restaurantId: restaurant.data._id, availableOnly: true } : 'skip')
+	);
 
 	let activeCategory = $state('all');
 	let justAdded = $state<string | null>(null);
 
-	const filteredItems = $derived(
-		activeCategory === 'all'
-			? menuItems
-			: menuItems.filter((i) => i.category === activeCategory)
+	// Use Convex data when available, fall back to static data
+	const categories = $derived(
+		categoriesQuery.data ?? fallbackCategories.map((c) => ({ ...c, _id: c.id }))
 	);
 
-	const emojiMap: Record<string, string> = {
-		appetizers: '🥟',
-		mains: '🍛',
-		drinks: '☕',
-		desserts: '🍮'
-	};
+	const allItems = $derived(menuItemsQuery.data ?? fallbackItems);
 
-	function handleAddToCart(item: (typeof menuItems)[0]) {
-		cart.addItem(item.id, item.name, item.nameNe, item.price);
-		justAdded = item.id;
+	const filteredItems = $derived(
+		activeCategory === 'all'
+			? allItems
+			: allItems.filter((i: any) => {
+					// Match by categoryId (Convex) or category string (fallback)
+					if (i.categoryId) return i.categoryId === activeCategory;
+					return i.category === activeCategory;
+				})
+	);
+
+	function getItemId(item: any): string {
+		return item._id ?? item.id;
+	}
+
+	function getItemEmoji(item: any): string {
+		if (item.imageUrl) return '';
+		if (item.category) {
+			const map: Record<string, string> = { appetizers: '🥟', mains: '🍛', drinks: '☕', desserts: '🍮' };
+			return map[item.category] || '🍽️';
+		}
+		if (item.isVeg) return '🥬';
+		return '🍛';
+	}
+
+	function getCategoryId(cat: any): string {
+		return cat._id ?? cat.id;
+	}
+
+	function handleAddToCart(item: any) {
+		const id = getItemId(item);
+		cart.addItem(id, item.name, item.nameNe || '', item.price);
+		justAdded = id;
 		setTimeout(() => {
-			if (justAdded === item.id) justAdded = null;
+			if (justAdded === id) justAdded = null;
 		}, 1200);
 	}
 
-	function getCartQty(itemId: string): number {
-		return cart.items.find((i) => i.menuItemId === itemId)?.quantity ?? 0;
+	function getCartQty(item: any): number {
+		return cart.items.find((i) => i.menuItemId === getItemId(item))?.quantity ?? 0;
 	}
 </script>
 
@@ -51,124 +89,133 @@
 
 <section class="bg-background py-12">
 	<div class="mx-auto max-w-7xl px-4 sm:px-6">
-		<!-- Category Filter -->
-		<div class="mb-12 flex flex-wrap justify-center gap-3">
-			<button
-				class="rounded-full px-5 py-2.5 text-sm font-medium transition-all {activeCategory === 'all'
-					? 'bg-primary text-primary-foreground shadow-lg'
-					: 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}"
-				onclick={() => (activeCategory = 'all')}
-			>
-				All
-			</button>
-			{#each categories as cat}
+		{#if menuItemsQuery.isLoading && !menuItemsQuery.data}
+			<div class="flex justify-center py-20">
+				<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+			</div>
+		{:else}
+			<!-- Category Filter -->
+			<div class="mb-12 flex flex-wrap justify-center gap-3">
 				<button
-					class="rounded-full px-5 py-2.5 text-sm font-medium transition-all {activeCategory === cat.id
+					class="rounded-full px-5 py-2.5 text-sm font-medium transition-all {activeCategory === 'all'
 						? 'bg-primary text-primary-foreground shadow-lg'
 						: 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}"
-					onclick={() => (activeCategory = cat.id)}
+					onclick={() => (activeCategory = 'all')}
 				>
-					{$locale === 'ne' ? cat.nameNe : cat.name}
+					All
 				</button>
-			{/each}
-		</div>
-
-		<!-- Menu Grid -->
-		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{#each filteredItems as item (item.id)}
-				{@const qty = getCartQty(item.id)}
-				<div
-					class="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-				>
-					<div
-						class="relative flex h-40 items-center justify-center bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/20"
+				{#each categories as cat}
+					<button
+						class="rounded-full px-5 py-2.5 text-sm font-medium transition-all {activeCategory === getCategoryId(cat)
+							? 'bg-primary text-primary-foreground shadow-lg'
+							: 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}"
+						onclick={() => (activeCategory = getCategoryId(cat))}
 					>
-						<span class="text-6xl transition-transform duration-300 group-hover:scale-110">
-							{emojiMap[item.category] || '🍽️'}
-						</span>
-						{#if qty > 0}
-							<div
-								class="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-md"
-							>
-								{qty}
-							</div>
-						{/if}
-					</div>
-					<div class="p-6">
-						<div class="mb-2 flex flex-wrap gap-2">
-							{#if item.popular}
-								<span
-									class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-								>
-									<Star class="h-3 w-3" />
-									{$t('menu.popular')}
-								</span>
-							{/if}
-							{#if item.vegetarian}
-								<span
-									class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300"
-								>
-									<Leaf class="h-3 w-3" />
-									{$t('menu.veg')}
-								</span>
-							{/if}
-							{#if item.spicy}
-								<span
-									class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300"
-								>
-									<Flame class="h-3 w-3" />
-									{$t('menu.spicy')}
-								</span>
-							{/if}
-						</div>
-						<h3 class="text-lg font-semibold text-foreground">
-							{$locale === 'ne' ? item.nameNe : item.name}
-						</h3>
-						<p class="mt-1 text-sm leading-relaxed text-muted-foreground">
-							{$locale === 'ne' ? item.descriptionNe : item.description}
-						</p>
-						<div class="mt-4 flex items-center justify-between">
-							<span class="text-xl font-bold text-primary">Rs. {item.price}</span>
+						{$locale === 'ne' ? (cat.nameNe || cat.name) : cat.name}
+					</button>
+				{/each}
+			</div>
 
-							{#if qty > 0}
-								<!-- Quantity controls -->
-								<div class="flex items-center gap-2">
-									<button
-										class="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-secondary/80"
-										onclick={() => cart.updateQuantity(item.id, qty - 1)}
-									>
-										<Minus class="h-3.5 w-3.5" />
-									</button>
-									<span class="w-6 text-center text-sm font-semibold text-foreground">{qty}</span>
-									<button
-										class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
-										onclick={() => cart.updateQuantity(item.id, qty + 1)}
-									>
-										<Plus class="h-3.5 w-3.5" />
-									</button>
-								</div>
+			<!-- Menu Grid -->
+			<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+				{#each filteredItems as item (getItemId(item))}
+					{@const id = getItemId(item)}
+					{@const qty = getCartQty(item)}
+					<div
+						class="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+					>
+						<div
+							class="relative flex h-40 items-center justify-center bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/20"
+						>
+							{#if item.imageUrl}
+								<img src={item.imageUrl} alt={item.name} class="h-full w-full object-cover" />
 							{:else}
-								<!-- Add to cart button -->
-								<button
-									class="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all {justAdded === item.id
-										? 'bg-green-500 text-white'
-										: 'bg-primary text-primary-foreground hover:bg-primary/90'} shadow-md hover:shadow-lg"
-									onclick={() => handleAddToCart(item)}
+								<span class="text-6xl transition-transform duration-300 group-hover:scale-110">
+									{getItemEmoji(item)}
+								</span>
+							{/if}
+							{#if qty > 0}
+								<div
+									class="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-md"
 								>
-									{#if justAdded === item.id}
-										<Check class="h-4 w-4" />
-										Added
-									{:else}
-										<Plus class="h-4 w-4" />
-										Add
-									{/if}
-								</button>
+									{qty}
+								</div>
 							{/if}
 						</div>
+						<div class="p-6">
+							<div class="mb-2 flex flex-wrap gap-2">
+								{#if item.popular}
+									<span
+										class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+									>
+										<Star class="h-3 w-3" />
+										{$t('menu.popular')}
+									</span>
+								{/if}
+								{#if item.isVeg || item.vegetarian}
+									<span
+										class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300"
+									>
+										<Leaf class="h-3 w-3" />
+										{$t('menu.veg')}
+									</span>
+								{/if}
+								{#if item.spicy}
+									<span
+										class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300"
+									>
+										<Flame class="h-3 w-3" />
+										{$t('menu.spicy')}
+									</span>
+								{/if}
+							</div>
+							<h3 class="text-lg font-semibold text-foreground">
+								{$locale === 'ne' ? (item.nameNe || item.name) : item.name}
+							</h3>
+							<p class="mt-1 text-sm leading-relaxed text-muted-foreground">
+								{$locale === 'ne' ? (item.descriptionNe || item.description || '') : (item.description || '')}
+							</p>
+							<div class="mt-4 flex items-center justify-between">
+								<span class="text-xl font-bold text-primary">Rs. {item.price}</span>
+
+								{#if qty > 0}
+									<div class="flex items-center gap-2">
+										<button
+											class="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-secondary/80"
+											onclick={() => cart.updateQuantity(id, qty - 1)}
+										>
+											<Minus class="h-3.5 w-3.5" />
+										</button>
+										<span class="w-6 text-center text-sm font-semibold text-foreground">{qty}</span>
+										<button
+											class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+											onclick={() => cart.updateQuantity(id, qty + 1)}
+										>
+											<Plus class="h-3.5 w-3.5" />
+										</button>
+									</div>
+								{:else}
+									<button
+										class="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all {justAdded === id
+											? 'bg-green-500 text-white'
+											: 'bg-primary text-primary-foreground hover:bg-primary/90'} shadow-md hover:shadow-lg"
+										onclick={() => handleAddToCart(item)}
+									>
+										{#if justAdded === id}
+											<Check class="h-4 w-4" />
+											Added
+										{:else}
+											<Plus class="h-4 w-4" />
+											Add
+										{/if}
+									</button>
+								{/if}
+							</div>
+						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 </section>
 

@@ -1,5 +1,5 @@
 export interface CartItem {
-	menuItemId: string;
+	menuItemId: string; // Convex Id<"menuItems"> stored as string
 	name: string;
 	nameNe: string;
 	price: number;
@@ -43,6 +43,14 @@ class CartStore {
 
 	clearCart() {
 		this.items = [];
+	}
+
+	/** Map cart items to the shape expected by Convex orders.placeOrder */
+	toConvexItems() {
+		return this.items.map((i) => ({
+			menuItemId: i.menuItemId as any, // Id<"menuItems">
+			quantity: i.quantity
+		}));
 	}
 }
 

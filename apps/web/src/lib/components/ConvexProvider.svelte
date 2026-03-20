@@ -4,12 +4,14 @@
 
 	let { children }: { children: Snippet } = $props();
 
-	// Use import.meta.env to avoid build errors when env var isn't set
-	const convexUrl = import.meta.env.VITE_PUBLIC_CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL;
+	// Use the real URL if available, otherwise a placeholder that won't connect
+	// but allows the Svelte context to be set up (prevents getContext errors during SSR)
+	const convexUrl =
+		import.meta.env.VITE_PUBLIC_CONVEX_URL ||
+		import.meta.env.PUBLIC_CONVEX_URL ||
+		'https://placeholder.convex.cloud';
 
-	if (convexUrl) {
-		setupConvex(convexUrl);
-	}
+	setupConvex(convexUrl);
 </script>
 
 {@render children()}

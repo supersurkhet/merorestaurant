@@ -1,23 +1,32 @@
 <script lang="ts">
 	import { t } from '$i18n';
-	import { Wifi, WifiOff, Check } from 'lucide-svelte';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$lib/convex-api';
+	import { RESTAURANT_SLUG } from '$lib/stores/restaurant.svelte';
+	import { Wifi, Check, Loader2 } from 'lucide-svelte';
+
+	const restaurant = useQuery(api.restaurants.getBySlug, { slug: RESTAURANT_SLUG });
+
+	const wifiConfig = useQuery(
+		api.wifi.getActiveByRestaurant,
+		() => (restaurant.data?._id ? { restaurantId: restaurant.data._id } : 'skip')
+	);
 
 	let status = $state<'idle' | 'connecting' | 'connected'>('idle');
 
+	// Use Convex data or fallback
+	const ssid = $derived(wifiConfig.data?.ssid ?? 'MeroRestaurant-Guest');
+	const qrString = $derived(
+		wifiConfig.data?.qrString ?? 'WIFI:T:WPA;S:MeroRestaurant-Guest;P:namaste2024;;'
+	);
+
 	function connect() {
 		status = 'connecting';
-		// Trigger WiFi connection via WiFi URI scheme
-		// Format: WIFI:T:WPA;S:<SSID>;P:<password>;;
-		const wifiUri = 'WIFI:T:WPA;S:MeroRestaurant-Guest;P:namaste2024;;';
-
-		// Try the WiFi URI scheme (works on Android with QR scanner)
-		// On iOS, we display the credentials instead
 		try {
-			window.location.href = wifiUri;
+			window.location.href = qrString;
 		} catch {
-			// fallback - just show connected
+			// fallback
 		}
-
 		setTimeout(() => {
 			status = 'connected';
 		}, 2000);
@@ -37,6 +46,8 @@
 					<Check class="h-10 w-10 text-green-500" />
 				{:else if status === 'connecting'}
 					<Wifi class="h-10 w-10 animate-pulse text-primary" />
+				{:else if wifiConfig.isLoading}
+					<Loader2 class="h-10 w-10 animate-spin text-primary" />
 				{:else}
 					<Wifi class="h-10 w-10 text-primary" />
 				{/if}
@@ -51,7 +62,7 @@
 
 			<div class="mt-8 rounded-xl bg-muted p-4">
 				<p class="text-sm text-muted-foreground">{$t('wifi.network')}</p>
-				<p class="mt-1 text-lg font-semibold text-foreground">MeroRestaurant-Guest</p>
+				<p class="mt-1 text-lg font-semibold text-foreground">{ssid}</p>
 			</div>
 
 			{#if status === 'connected'}

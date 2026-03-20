@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { t, locale } from '$i18n';
+	import { useQuery, useConvexClient } from 'convex-svelte';
+	import { api } from '$lib/convex-api';
+	import { RESTAURANT_SLUG } from '$lib/stores/restaurant.svelte';
 	import { cart } from '$lib/stores/cart.svelte';
 	import { goto } from '$app/navigation';
 	import {
@@ -14,37 +17,45 @@
 		ArrowRight
 	} from 'lucide-svelte';
 
+	const restaurant = useQuery(api.restaurants.getBySlug, { slug: RESTAURANT_SLUG });
+	let convexClient: ReturnType<typeof useConvexClient> | null = null;
+	try {
+		convexClient = useConvexClient();
+	} catch {
+		// Convex not initialized (no URL set)
+	}
+
 	let customerName = $state('');
 	let notes = $state('');
 	let isPlacing = $state(false);
+	let error = $state('');
 
 	async function placeOrder() {
 		if (cart.items.length === 0) return;
 		isPlacing = true;
+		error = '';
 
 		try {
-			// TODO: Call Convex placeOrder mutation when ready
-			// const orderId = await convexClient.mutation(api.orders.placeOrder, {
-			//   items: cart.items.map(i => ({
-			//     menuItemId: i.menuItemId,
-			//     name: i.name,
-			//     price: i.price,
-			//     quantity: i.quantity,
-			//   })),
-			//   customerName: customerName || undefined,
-			//   notes: notes || undefined,
-			//   subtotal: cart.total,
-			//   vat: cart.vatAmount,
-			//   total: cart.totalWithVat,
-			// });
+			if (convexClient && restaurant.data?._id) {
+				const result = await convexClient.mutation(api.orders.placeOrder, {
+					restaurantId: restaurant.data._id,
+					items: cart.toConvexItems(),
+					customerName: customerName || undefined,
+					notes: notes || undefined,
+					createdBy: 'customer'
+				});
 
-			// Stub: generate a temporary order number
-			const orderNumber = `MR-${Date.now().toString(36).toUpperCase()}`;
-
-			cart.clearCart();
-			goto(`/order/${orderNumber}`);
-		} catch (err) {
+				cart.clearCart();
+				goto(`/order/${result.orderNumber}`);
+			} else {
+				// Fallback when Convex isn't connected
+				const orderNumber = `ORD-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
+				cart.clearCart();
+				goto(`/order/${orderNumber}`);
+			}
+		} catch (err: any) {
 			console.error('Failed to place order:', err);
+			error = err?.message || 'Failed to place order. Please try again.';
 			isPlacing = false;
 		}
 	}
@@ -72,7 +83,6 @@
 <section class="bg-background py-12">
 	<div class="mx-auto max-w-4xl px-4 sm:px-6">
 		{#if cart.items.length === 0}
-			<!-- Empty cart -->
 			<div class="rounded-2xl border border-border bg-card py-20 text-center">
 				<ShoppingCart class="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
 				<h2 class="text-xl font-semibold text-foreground">Your cart is empty</h2>
@@ -89,7 +99,6 @@
 			</div>
 		{:else}
 			<div class="grid gap-8 lg:grid-cols-5">
-				<!-- Cart Items -->
 				<div class="lg:col-span-3">
 					<div class="rounded-2xl border border-border bg-card">
 						<div class="border-b border-border p-6">
@@ -108,7 +117,7 @@
 
 									<div class="min-w-0 flex-1">
 										<h3 class="font-medium text-foreground">
-											{$locale === 'ne' ? item.nameNe : item.name}
+											{$locale === 'ne' ? (item.nameNe || item.name) : item.name}
 										</h3>
 										<p class="text-sm text-muted-foreground">
 											Rs. {item.price} each
@@ -150,7 +159,6 @@
 						</div>
 					</div>
 
-					<!-- Customer Info -->
 					<div class="mt-6 rounded-2xl border border-border bg-card p-6">
 						<h3 class="mb-4 text-sm font-semibold tracking-wider text-foreground uppercase">
 							Order Details
@@ -186,7 +194,6 @@
 					</div>
 				</div>
 
-				<!-- Order Summary -->
 				<div class="lg:col-span-2">
 					<div class="sticky top-28 rounded-2xl border border-border bg-card">
 						<div class="border-b border-border p-6">
@@ -212,6 +219,12 @@
 									</div>
 								</div>
 							</div>
+
+							{#if error}
+								<div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+									{error}
+								</div>
+							{/if}
 
 							<button
 								onclick={placeOrder}

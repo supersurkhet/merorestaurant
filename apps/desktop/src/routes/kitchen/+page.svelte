@@ -19,9 +19,11 @@
 		RefreshCw
 	} from 'lucide-svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { getAuth } from '$lib/stores/auth.svelte';
 
 	const data = getData();
 	const i18n = getI18n();
+	const auth = getAuth();
 
 	type KitchenFilter = 'all' | 'pending' | 'confirmed' | 'preparing' | 'ready';
 	let activeFilter = $state<KitchenFilter>('all');
@@ -69,8 +71,17 @@
 	function refreshNow() {
 		lastRefresh = Date.now();
 		secondsSinceRefresh = 0;
-		// TODO: Re-fetch from Convex subscription
 	}
+
+	// Mark all preparing orders as ready
+	async function markAllReady() {
+		const preparing = data.orders.filter((o: any) => o.status === 'preparing');
+		for (const order of preparing) {
+			await data.updateOrderStatus(order._id, 'ready');
+		}
+	}
+
+	const isReadOnly = $derived(!auth.canEditKitchen);
 
 	function orderTime(order: any): number {
 		return order._creationTime ?? order.createdAt ?? Date.now();
@@ -196,6 +207,15 @@
 		</div>
 	</div>
 
+	<!-- Actions bar -->
+	{#if !isReadOnly && data.orders.filter((o: any) => o.status === 'preparing').length > 0}
+		<div class="flex justify-end">
+			<Button variant="success" size="sm" onclick={markAllReady}>
+				<CheckCircle size={14} /> {i18n.t('order.markAllReady')} ({data.orders.filter((o: any) => o.status === 'preparing').length})
+			</Button>
+		</div>
+	{/if}
+
 	<!-- Filters -->
 	<div class="flex gap-2">
 		{#each filters as filter}
@@ -295,7 +315,7 @@
 								<Printer size={13} class="text-muted-foreground" />
 							</Button>
 						</div>
-						{#if nextStatus(order.status)}
+						{#if nextStatus(order.status) && !isReadOnly}
 							{@const next = nextStatus(order.status)!}
 							<Button
 								size="sm"

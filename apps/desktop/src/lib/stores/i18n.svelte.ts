@@ -2,8 +2,23 @@ type Locale = 'en' | 'ne';
 
 const translations: Record<Locale, Record<string, string>> = {
 	en: {
+		// App
 		'app.name': 'Mero Restaurant',
 		'app.tagline': 'Restaurant Management System',
+		'app.connecting': 'Connecting to Mero Restaurant...',
+
+		// Auth
+		'auth.signIn': 'Sign in to Mero Restaurant',
+		'auth.signInDesc': 'Admin dashboard for restaurant management',
+		'auth.signInWorkOS': 'Sign in with WorkOS',
+		'auth.devMode': 'Development Mode',
+		'auth.selectRole': 'Select role to sign in as',
+		'auth.devSignIn': 'Dev Sign In',
+		'auth.signOut': 'Sign Out',
+		'auth.accessDenied': 'Access Denied',
+		'auth.accessDeniedDesc': 'You do not have permission to view this page. Contact your manager for access.',
+
+		// Navigation
 		'nav.dashboard': 'Dashboard',
 		'nav.kitchen': 'Kitchen Display',
 		'nav.tables': 'Tables',
@@ -14,6 +29,15 @@ const translations: Record<Locale, Record<string, string>> = {
 		'nav.fonepay': 'Fonepay QR',
 		'nav.analytics': 'Analytics',
 		'nav.settings': 'Settings',
+
+		// Roles
+		'role.owner': 'Owner',
+		'role.manager': 'Manager',
+		'role.waiter': 'Waiter',
+		'role.kitchen': 'Kitchen',
+		'role.cashier': 'Cashier',
+
+		// Status
 		'status.available': 'Available',
 		'status.occupied': 'Occupied',
 		'status.reserved': 'Reserved',
@@ -23,7 +47,12 @@ const translations: Record<Locale, Record<string, string>> = {
 		'status.preparing': 'Preparing',
 		'status.ready': 'Ready',
 		'status.served': 'Served',
+		'status.completed': 'Completed',
 		'status.cancelled': 'Cancelled',
+		'status.active': 'Active',
+		'status.inactive': 'Inactive',
+
+		// Orders
 		'order.new': 'New Order',
 		'order.total': 'Total',
 		'order.items': 'Items',
@@ -31,22 +60,81 @@ const translations: Record<Locale, Record<string, string>> = {
 		'order.markPreparing': 'Start Preparing',
 		'order.markReady': 'Mark Ready',
 		'order.markServed': 'Mark Served',
+		'order.confirm': 'Confirm',
+		'order.markAllReady': 'Mark All Ready',
+		'order.print': 'Print Ticket',
+		'order.noOrders': 'No orders in this queue',
+		'order.realtimeQueue': 'Real-time order queue',
+
+		// Tables
 		'table.number': 'Table',
 		'table.seats': 'Seats',
+		'table.floorPlan': 'Floor Plan',
+		'table.seatGuests': 'Seat Guests',
+		'table.markCleaning': 'Mark Cleaning',
+		'table.markAvailable': 'Mark Available',
+		'table.currentOrder': 'Current Order',
+		'table.noOrder': 'No active order',
+		'table.qrCode': 'Table QR Code',
+		'table.printQr': 'Print QR Tent',
+
+		// Menu
 		'menu.addItem': 'Add Item',
+		'menu.editItem': 'Edit Menu Item',
 		'menu.addCategory': 'Add Category',
+		'menu.editCategory': 'Edit Category',
 		'menu.price': 'Price',
 		'menu.available': 'Available',
 		'menu.unavailable': 'Unavailable',
+		'menu.name': 'Name (English)',
+		'menu.nameNe': 'Name (नेपाली)',
+		'menu.description': 'Description',
+		'menu.category': 'Category',
+		'menu.vegetarian': 'Vegetarian',
+		'menu.image': 'Image',
+
+		// Staff
 		'staff.invite': 'Invite Staff',
 		'staff.role': 'Role',
+		'staff.fullName': 'Full Name',
+		'staff.email': 'Email',
+		'staff.phone': 'Phone',
+		'staff.deactivate': 'Deactivate',
+		'staff.activate': 'Activate',
+		'staff.confirmDeactivate': 'Deactivate Staff Member',
+		'staff.confirmActivate': 'Activate Staff Member',
+
+		// WiFi
 		'wifi.ssid': 'Network Name (SSID)',
 		'wifi.password': 'Password',
 		'wifi.update': 'Update WiFi',
+		'wifi.settings': 'WiFi Settings',
+		'wifi.customerQr': 'Customer WiFi QR',
+		'wifi.printQr': 'Print QR Code',
+		'wifi.lastUpdated': 'Last updated',
+		'wifi.saved': 'WiFi config updated! QR codes now reflect the new credentials.',
+
+		// Analytics
 		'analytics.revenue': 'Revenue',
 		'analytics.orders': 'Orders',
 		'analytics.popular': 'Popular Items',
 		'analytics.today': 'Today',
+		'analytics.thisWeek': 'This Week',
+		'analytics.thisMonth': 'This Month',
+		'analytics.avgOrderValue': 'Avg Order Value',
+		'analytics.avgPrepTime': 'Avg Prep Time',
+		'analytics.ordersByHour': 'Orders by Hour',
+		'analytics.paymentMethods': 'Payment Methods',
+
+		// Fonepay
+		'fonepay.title': 'Fonepay QR',
+		'fonepay.generate': 'Generate Payment QR',
+		'fonepay.amount': 'Amount',
+		'fonepay.newPayment': 'New Payment',
+		'fonepay.confirmReceived': 'Confirm Received',
+		'fonepay.recentPayments': 'Recent Fonepay Payments',
+
+		// Common
 		'common.save': 'Save',
 		'common.cancel': 'Cancel',
 		'common.delete': 'Delete',
@@ -54,11 +142,40 @@ const translations: Record<Locale, Record<string, string>> = {
 		'common.search': 'Search',
 		'common.filter': 'Filter',
 		'common.loading': 'Loading...',
-		'common.noData': 'No data available'
+		'common.noData': 'No data available',
+		'common.close': 'Close',
+		'common.print': 'Print',
+		'common.reset': 'Reset',
+		'common.all': 'All',
+
+		// Theme
+		'theme.light': 'Light Mode',
+		'theme.dark': 'Dark Mode',
+
+		// Keyboard
+		'keyboard.shortcuts': 'Keyboard Shortcuts',
+		'keyboard.kitchen': 'Ctrl+K — Kitchen',
+		'keyboard.tables': 'Ctrl+T — Tables',
+		'keyboard.menu': 'Ctrl+M — Menu'
 	},
 	ne: {
+		// App
 		'app.name': 'मेरो रेस्टुरेन्ट',
 		'app.tagline': 'रेस्टुरेन्ट व्यवस्थापन प्रणाली',
+		'app.connecting': 'मेरो रेस्टुरेन्ट जडान हुँदैछ...',
+
+		// Auth
+		'auth.signIn': 'मेरो रेस्टुरेन्टमा साइन इन',
+		'auth.signInDesc': 'रेस्टुरेन्ट व्यवस्थापनको लागि एडमिन ड्यासबोर्ड',
+		'auth.signInWorkOS': 'WorkOS मार्फत साइन इन',
+		'auth.devMode': 'विकास मोड',
+		'auth.selectRole': 'साइन इन गर्न भूमिका छान्नुहोस्',
+		'auth.devSignIn': 'विकास साइन इन',
+		'auth.signOut': 'साइन आउट',
+		'auth.accessDenied': 'पहुँच अस्वीकृत',
+		'auth.accessDeniedDesc': 'तपाईंसँग यो पृष्ठ हेर्ने अनुमति छैन। पहुँचको लागि आफ्नो व्यवस्थापकलाई सम्पर्क गर्नुहोस्।',
+
+		// Navigation
 		'nav.dashboard': 'ड्यासबोर्ड',
 		'nav.kitchen': 'भान्सा प्रदर्शन',
 		'nav.tables': 'टेबलहरू',
@@ -69,6 +186,15 @@ const translations: Record<Locale, Record<string, string>> = {
 		'nav.fonepay': 'फोनपे QR',
 		'nav.analytics': 'विश्लेषण',
 		'nav.settings': 'सेटिङ',
+
+		// Roles
+		'role.owner': 'मालिक',
+		'role.manager': 'व्यवस्थापक',
+		'role.waiter': 'वेटर',
+		'role.kitchen': 'भान्से',
+		'role.cashier': 'क्यासियर',
+
+		// Status
 		'status.available': 'उपलब्ध',
 		'status.occupied': 'व्यस्त',
 		'status.reserved': 'आरक्षित',
@@ -78,7 +204,12 @@ const translations: Record<Locale, Record<string, string>> = {
 		'status.preparing': 'तयारी हुँदै',
 		'status.ready': 'तयार',
 		'status.served': 'सर्भ भएको',
+		'status.completed': 'पूरा भएको',
 		'status.cancelled': 'रद्द',
+		'status.active': 'सक्रिय',
+		'status.inactive': 'निष्क्रिय',
+
+		// Orders
 		'order.new': 'नयाँ अर्डर',
 		'order.total': 'जम्मा',
 		'order.items': 'सामानहरू',
@@ -86,22 +217,81 @@ const translations: Record<Locale, Record<string, string>> = {
 		'order.markPreparing': 'तयारी सुरु',
 		'order.markReady': 'तयार चिन्ह',
 		'order.markServed': 'सर्भ चिन्ह',
+		'order.confirm': 'पुष्टि',
+		'order.markAllReady': 'सबै तयार चिन्ह',
+		'order.print': 'टिकट छाप्नुहोस्',
+		'order.noOrders': 'यो कतारमा अर्डर छैन',
+		'order.realtimeQueue': 'वास्तविक-समय अर्डर कतार',
+
+		// Tables
 		'table.number': 'टेबल',
 		'table.seats': 'सिटहरू',
+		'table.floorPlan': 'फ्लोर प्लान',
+		'table.seatGuests': 'अतिथि बसाउनुहोस्',
+		'table.markCleaning': 'सफाइ चिन्ह',
+		'table.markAvailable': 'उपलब्ध चिन्ह',
+		'table.currentOrder': 'हालको अर्डर',
+		'table.noOrder': 'सक्रिय अर्डर छैन',
+		'table.qrCode': 'टेबल QR कोड',
+		'table.printQr': 'QR टेन्ट छाप्नुहोस्',
+
+		// Menu
 		'menu.addItem': 'आइटम थप्नुहोस्',
+		'menu.editItem': 'मेनु आइटम सम्पादन',
 		'menu.addCategory': 'श्रेणी थप्नुहोस्',
+		'menu.editCategory': 'श्रेणी सम्पादन',
 		'menu.price': 'मूल्य',
 		'menu.available': 'उपलब्ध',
 		'menu.unavailable': 'अनुपलब्ध',
+		'menu.name': 'नाम (अंग्रेजी)',
+		'menu.nameNe': 'नाम (नेपाली)',
+		'menu.description': 'विवरण',
+		'menu.category': 'श्रेणी',
+		'menu.vegetarian': 'शाकाहारी',
+		'menu.image': 'तस्विर',
+
+		// Staff
 		'staff.invite': 'कर्मचारी निमन्त्रणा',
 		'staff.role': 'भूमिका',
+		'staff.fullName': 'पूरा नाम',
+		'staff.email': 'इमेल',
+		'staff.phone': 'फोन',
+		'staff.deactivate': 'निष्क्रिय गर्नुहोस्',
+		'staff.activate': 'सक्रिय गर्नुहोस्',
+		'staff.confirmDeactivate': 'कर्मचारी निष्क्रिय गर्नुहोस्',
+		'staff.confirmActivate': 'कर्मचारी सक्रिय गर्नुहोस्',
+
+		// WiFi
 		'wifi.ssid': 'नेटवर्क नाम (SSID)',
 		'wifi.password': 'पासवर्ड',
 		'wifi.update': 'वाइफाइ अपडेट',
+		'wifi.settings': 'वाइफाइ सेटिङ',
+		'wifi.customerQr': 'ग्राहक वाइफाइ QR',
+		'wifi.printQr': 'QR कोड छाप्नुहोस्',
+		'wifi.lastUpdated': 'अन्तिम अपडेट',
+		'wifi.saved': 'वाइफाइ सेटिङ अपडेट भयो! QR कोडहरूमा अब नयाँ प्रमाणपत्र देखिनेछ।',
+
+		// Analytics
 		'analytics.revenue': 'आम्दानी',
 		'analytics.orders': 'अर्डरहरू',
 		'analytics.popular': 'लोकप्रिय आइटमहरू',
 		'analytics.today': 'आज',
+		'analytics.thisWeek': 'यो हप्ता',
+		'analytics.thisMonth': 'यो महिना',
+		'analytics.avgOrderValue': 'औसत अर्डर मूल्य',
+		'analytics.avgPrepTime': 'औसत तयारी समय',
+		'analytics.ordersByHour': 'घण्टा अनुसार अर्डर',
+		'analytics.paymentMethods': 'भुक्तानी विधिहरू',
+
+		// Fonepay
+		'fonepay.title': 'फोनपे QR',
+		'fonepay.generate': 'भुक्तानी QR बनाउनुहोस्',
+		'fonepay.amount': 'रकम',
+		'fonepay.newPayment': 'नयाँ भुक्तानी',
+		'fonepay.confirmReceived': 'प्राप्त पुष्टि',
+		'fonepay.recentPayments': 'हालका फोनपे भुक्तानीहरू',
+
+		// Common
 		'common.save': 'सेभ गर्नुहोस्',
 		'common.cancel': 'रद्द गर्नुहोस्',
 		'common.delete': 'मेटाउनुहोस्',
@@ -109,7 +299,21 @@ const translations: Record<Locale, Record<string, string>> = {
 		'common.search': 'खोज्नुहोस्',
 		'common.filter': 'फिल्टर',
 		'common.loading': 'लोड हुँदैछ...',
-		'common.noData': 'डाटा उपलब्ध छैन'
+		'common.noData': 'डाटा उपलब्ध छैन',
+		'common.close': 'बन्द गर्नुहोस्',
+		'common.print': 'छाप्नुहोस्',
+		'common.reset': 'रिसेट',
+		'common.all': 'सबै',
+
+		// Theme
+		'theme.light': 'उज्यालो मोड',
+		'theme.dark': 'अँध्यारो मोड',
+
+		// Keyboard
+		'keyboard.shortcuts': 'किबोर्ड सर्टकटहरू',
+		'keyboard.kitchen': 'Ctrl+K — भान्सा',
+		'keyboard.tables': 'Ctrl+T — टेबलहरू',
+		'keyboard.menu': 'Ctrl+M — मेनु'
 	}
 };
 

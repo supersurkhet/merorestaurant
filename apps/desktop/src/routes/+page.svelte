@@ -185,7 +185,7 @@
 					<div class="space-y-3">
 						<div class="flex items-center justify-between">
 							<span class="text-sm text-muted-foreground">Pending</span>
-							<Badge variant="warning">{data.orders.filter((o: any) => o.status === 'pending').length}</Badge>
+							<Badge variant="warning">{data.orders.filter((o: any) => o.status === 'placed').length}</Badge>
 						</div>
 						<div class="flex items-center justify-between">
 							<span class="text-sm text-muted-foreground">Preparing</span>
@@ -205,10 +205,10 @@
 					</h2>
 					<div class="grid grid-cols-4 gap-2">
 						{#each data.tables as table}
-							{@const colorMap: Record<string, string> = { available: 'bg-success/20 border-success/40 text-success', occupied: 'bg-destructive/20 border-destructive/40 text-destructive', reserved: 'bg-warning/20 border-warning/40 text-warning', cleaning: 'bg-muted border-muted text-muted-foreground' }}
+							{@const colorMap: Record<string, string> = { available: 'bg-success/20 border-success/40 text-success', occupied: 'bg-destructive/20 border-destructive/40 text-destructive', reserved: 'bg-warning/20 border-warning/40 text-warning' }}
 							<div
 								class={`flex h-10 w-full items-center justify-center rounded-lg border text-xs font-bold ${colorMap[table.status as string] ?? ''}`}
-								title="{table.status} - {table.seats} seats"
+								title="{table.status} - {table.capacity} seats"
 							>
 								{table.number}
 							</div>

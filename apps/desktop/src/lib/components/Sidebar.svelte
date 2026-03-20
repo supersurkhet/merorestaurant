@@ -32,7 +32,7 @@
 	// All nav items with role requirements
 	const allNavItems = [
 		{ href: '/', icon: LayoutDashboard, label: 'nav.dashboard', roles: null },
-		{ href: '/kitchen', icon: ChefHat, label: 'nav.kitchen', roles: ['owner', 'manager', 'kitchen', 'waiter'] },
+		{ href: '/kitchen', icon: ChefHat, label: 'nav.kitchen', roles: ['owner', 'manager', 'chef', 'waiter'] },
 		{ href: '/tables', icon: Table2, label: 'nav.tables', roles: ['owner', 'manager', 'waiter'] },
 		{ href: '/menu', icon: UtensilsCrossed, label: 'nav.menu', roles: ['owner', 'manager'] },
 		{ href: '/staff', icon: Users, label: 'nav.staff', roles: ['owner', 'manager'] },

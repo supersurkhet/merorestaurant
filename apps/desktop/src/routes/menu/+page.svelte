@@ -148,7 +148,7 @@
 		} else {
 			await data.addCategory({
 				name: categoryForm.name,
-				nameNe: categoryForm.nameNe || undefined,
+				nameNe: categoryForm.nameNe || categoryForm.name,
 				sortOrder: data.categories.length + 1
 			});
 		}

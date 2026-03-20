@@ -1,7 +1,7 @@
 // WorkOS auth state for Tauri desktop app
-// Convex roles: owner, manager, waiter, kitchen, cashier
+// Root convex roles: owner, manager, chef, waiter, cashier
 
-type ConvexRole = 'owner' | 'manager' | 'waiter' | 'kitchen' | 'cashier';
+type ConvexRole = 'owner' | 'manager' | 'chef' | 'waiter' | 'cashier';
 
 interface StaffUser {
 	_id: string;
@@ -74,10 +74,10 @@ export function getAuth() {
 
 		// Role permissions
 		get canViewKitchen() {
-			return this.hasRole('owner', 'manager', 'kitchen', 'waiter');
+			return this.hasRole('owner', 'manager', 'chef', 'waiter');
 		},
 		get canEditKitchen() {
-			return this.hasRole('owner', 'manager', 'kitchen');
+			return this.hasRole('owner', 'manager', 'chef');
 		},
 		get canViewTables() {
 			return this.hasRole('owner', 'manager', 'waiter');
@@ -124,7 +124,7 @@ export function getAuth() {
 				_id: 'dev-user',
 				restaurantId: 'dev-restaurant',
 				workosUserId: 'dev-workos-id',
-				name: role === 'owner' ? 'Rajesh Sharma' : role === 'kitchen' ? 'Kumar Chef' : 'Staff Member',
+				name: role === 'owner' ? 'Rajesh Sharma' : role === 'chef' ? 'Kumar Chef' : 'Staff Member',
 				email: `${role}@merorestaurant.com`,
 				role,
 				isActive: true

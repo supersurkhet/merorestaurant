@@ -33,16 +33,16 @@
 	let roleFilter = $state<string>('all');
 	let inviteForm = $state({ name: '', email: '', phone: '', role: 'waiter' });
 
-	// Convex uses: owner, manager, waiter, kitchen, cashier
+	// Root convex uses: owner, manager, chef, waiter, cashier
 	const roleConfig: Record<string, { label: string; icon: typeof Shield; color: string; bg: string }> = {
 		owner: { label: 'Owner', icon: Crown, color: 'text-amber-500', bg: 'bg-amber-500/10' },
 		manager: { label: 'Manager', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-		kitchen: { label: 'Kitchen', icon: ChefHat, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+		chef: { label: 'Chef', icon: ChefHat, color: 'text-orange-500', bg: 'bg-orange-500/10' },
 		waiter: { label: 'Waiter', icon: Coffee, color: 'text-purple-500', bg: 'bg-purple-500/10' },
 		cashier: { label: 'Cashier', icon: Coffee, color: 'text-teal-500', bg: 'bg-teal-500/10' }
 	};
 
-	const allRoles = ['owner', 'manager', 'waiter', 'kitchen', 'cashier'];
+	const allRoles = ['owner', 'manager', 'chef', 'waiter', 'cashier'];
 
 	const filteredStaff = $derived(
 		data.staff.filter((s) => {

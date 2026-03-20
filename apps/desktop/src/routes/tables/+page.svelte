@@ -7,7 +7,7 @@
 	import { getData } from '$lib/stores/data.svelte';
 	import { getI18n } from '$lib/stores/i18n.svelte';
 	import { formatCurrency } from '$lib/utils';
-	import type { TableStatus } from '$lib/types';
+	// Table statuses: available, occupied, reserved (root convex schema)
 	import {
 		Table2,
 		Users,
@@ -21,7 +21,7 @@
 	const data = getData();
 	const i18n = getI18n();
 
-	type FilterType = 'all' | TableStatus;
+	type FilterType = 'all' | 'available' | 'occupied' | 'reserved';
 	let activeFilter = $state<FilterType>('all');
 	let selectedTable = $state<any | null>(null);
 	let showQrDialog = $state(false);
@@ -36,18 +36,16 @@
 	const statusStyle: Record<string, { fill: string; border: string; text: string; label: string }> = {
 		available: { fill: 'bg-emerald-500/15', border: 'border-emerald-500/50', text: 'text-emerald-500', label: 'Available' },
 		occupied: { fill: 'bg-red-500/15', border: 'border-red-500/50', text: 'text-red-500', label: 'Occupied' },
-		reserved: { fill: 'bg-amber-500/15', border: 'border-amber-500/50', text: 'text-amber-500', label: 'Reserved' },
-		cleaning: { fill: 'bg-slate-400/15', border: 'border-slate-400/50', text: 'text-slate-400', label: 'Cleaning' }
+		reserved: { fill: 'bg-amber-500/15', border: 'border-amber-500/50', text: 'text-amber-500', label: 'Reserved' }
 	};
 
-	function cycleStatus(tableId: string, current: TableStatus) {
-		const cycle: Record<string, TableStatus> = {
+	function cycleStatus(tableId: string, current: string) {
+		const cycle: Record<string, string> = {
 			available: 'occupied',
-			occupied: 'cleaning',
-			cleaning: 'available',
+			occupied: 'available',
 			reserved: 'occupied'
 		};
-		data.updateTableStatus(tableId, cycle[current]);
+		data.updateTableStatus(tableId, cycle[current] as any);
 	}
 
 	function getTableOrder(table: any) {
@@ -117,7 +115,7 @@
 				<p class="text-muted-foreground mt-1">Manage restaurant floor layout</p>
 			</div>
 			<div class="flex gap-3">
-				{#each (['available', 'occupied', 'reserved', 'cleaning'] as string[]) as status}
+				{#each (['available', 'occupied', 'reserved'] as string[]) as status}
 					{@const style = statusStyle[status]}
 					{@const count = data.tables.filter((t: any) => t.status === status).length}
 					<div class="flex items-center gap-1.5 text-xs">
@@ -136,8 +134,7 @@
 				{ key: 'available', label: i18n.t('status.available') },
 				{ key: 'occupied', label: i18n.t('status.occupied') },
 				{ key: 'reserved', label: i18n.t('status.reserved') },
-				{ key: 'cleaning', label: i18n.t('status.cleaning') }
-			] as filter}
+				] as filter}
 				<Button
 					variant={activeFilter === filter.key ? 'default' : 'outline'}
 					size="sm"
@@ -170,13 +167,13 @@
 					{@const style = statusStyle[table.status] ?? statusStyle.available}
 					{@const pos = gridPosition(idx)}
 					<button
-						class="absolute flex flex-col items-center justify-center border-2 transition-all hover:scale-105 hover:shadow-xl {tableShape(table.seats)} {style.fill} {style.border}"
+						class="absolute flex flex-col items-center justify-center border-2 transition-all hover:scale-105 hover:shadow-xl {tableShape(table.capacity)} {style.fill} {style.border}"
 						style="left: {pos.x}px; top: {pos.y}px;"
 						onclick={() => openTableDetails(table)}
 					>
 						<span class="text-xl font-bold {style.text}">{table.number}</span>
 						<div class="flex items-center gap-0.5 text-[10px] text-muted-foreground mt-0.5">
-							<Users size={9} />{table.seats}
+							<Users size={9} />{table.capacity}
 						</div>
 						{#if table.label}
 							<span class="text-[8px] text-muted-foreground mt-0.5 truncate max-w-full px-1">
@@ -199,14 +196,14 @@
 						</Badge>
 					</div>
 					<div class="flex items-center gap-1 text-sm text-muted-foreground">
-						<Users size={14} /> {table.seats} seats
+						<Users size={14} /> {table.capacity} seats
 					</div>
 					{#if table.label}
 						<p class="text-xs text-muted-foreground mt-1">{table.label}</p>
 					{/if}
 					<div class="mt-3 flex gap-2">
 						<Button size="sm" variant="outline" class="flex-1" onclick={(e) => { e.stopPropagation(); cycleStatus(table._id, table.status); }}>
-							{table.status === 'available' ? 'Seat' : table.status === 'occupied' ? 'Clean' : table.status === 'cleaning' ? 'Free' : 'Seat'}
+							{table.status === 'available' ? 'Seat' : table.status === 'occupied' ? 'Free' : 'Seat'}
 						</Button>
 						<Button size="sm" variant="ghost" onclick={(e) => { e.stopPropagation(); openTableQr(table._id); }}>
 							<QrCode size={14} />
@@ -237,7 +234,7 @@
 			<div class="space-y-2 text-sm">
 				<div class="flex items-center justify-between">
 					<span class="text-muted-foreground">Seats</span>
-					<span class="font-medium">{selectedTable.seats}</span>
+					<span class="font-medium">{selectedTable.capacity}</span>
 				</div>
 				{#if selectedTable.qrCode}
 					<div class="flex items-center justify-between">
@@ -296,7 +293,7 @@
 
 			<div class="space-y-2">
 				<Button variant="outline" class="w-full" onclick={() => cycleStatus(selectedTable!._id, selectedTable!.status)}>
-					{selectedTable.status === 'available' ? 'Seat Guests' : selectedTable.status === 'occupied' ? 'Mark Cleaning' : selectedTable.status === 'cleaning' ? 'Mark Available' : 'Seat Guests'}
+					{selectedTable.status === 'available' ? 'Seat Guests' : selectedTable.status === 'occupied' ? 'Mark Available' : 'Seat Guests'}
 				</Button>
 				<Button variant="ghost" class="w-full" onclick={() => openTableQr(selectedTable!._id)}>
 					<Printer size={14} /> Print QR Tent

@@ -5,7 +5,6 @@
 	import { getData } from '$lib/stores/data.svelte';
 	import { getI18n } from '$lib/stores/i18n.svelte';
 	import { formatCurrency, timeAgo } from '$lib/utils';
-	import type { OrderStatus } from '$lib/types';
 	import {
 		ChefHat,
 		Clock,
@@ -25,7 +24,7 @@
 	const i18n = getI18n();
 	const auth = getAuth();
 
-	type KitchenFilter = 'all' | 'pending' | 'confirmed' | 'preparing' | 'ready';
+	type KitchenFilter = 'all' | 'placed' | 'confirmed' | 'preparing' | 'ready';
 	let activeFilter = $state<KitchenFilter>('all');
 	let soundEnabled = $state(true);
 	let lastRefresh = $state(Date.now());
@@ -95,15 +94,15 @@
 
 	const filters: { key: KitchenFilter; label: string; count: number }[] = $derived([
 		{ key: 'all', label: 'All Active', count: data.activeOrders.length },
-		{ key: 'pending', label: i18n.t('status.pending'), count: data.orders.filter((o: any) => o.status === 'pending').length },
+		{ key: 'placed', label: i18n.t('status.placed'), count: data.orders.filter((o: any) => o.status === 'placed').length },
 		{ key: 'confirmed', label: i18n.t('status.confirmed'), count: data.orders.filter((o: any) => o.status === 'confirmed').length },
 		{ key: 'preparing', label: i18n.t('status.preparing'), count: data.orders.filter((o: any) => o.status === 'preparing').length },
 		{ key: 'ready', label: i18n.t('status.ready'), count: data.orders.filter((o: any) => o.status === 'ready').length }
 	]);
 
-	function nextStatus(current: OrderStatus): OrderStatus | null {
-		const flow: Record<string, OrderStatus> = {
-			pending: 'confirmed',
+	function nextStatus(current: string): string | null {
+		const flow: Record<string, string> = {
+			placed: 'confirmed',
 			confirmed: 'preparing',
 			preparing: 'ready',
 			ready: 'served'
@@ -113,7 +112,7 @@
 
 	function statusColor(status: string): string {
 		return {
-			pending: 'border-l-amber-400',
+			placed: 'border-l-amber-400',
 			confirmed: 'border-l-blue-400',
 			preparing: 'border-l-orange-500',
 			ready: 'border-l-emerald-500'
@@ -274,7 +273,7 @@
 									? 'success'
 									: order.status === 'preparing'
 										? 'default'
-										: order.status === 'pending'
+										: order.status === 'placed'
 											? 'warning'
 											: 'secondary'}
 							>
@@ -320,7 +319,7 @@
 							<Button
 								size="sm"
 								variant={next === 'served' ? 'success' : 'default'}
-								onclick={() => data.updateOrderStatus(order._id, next)}
+								onclick={() => data.updateOrderStatus(order._id, next as any)}
 							>
 								{#if next === 'confirmed'}
 									<CheckCircle size={14} /> Confirm

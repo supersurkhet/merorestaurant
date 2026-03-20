@@ -34,6 +34,7 @@ const translations: Record<Locale, Record<string, string>> = {
 		'role.owner': 'Owner',
 		'role.manager': 'Manager',
 		'role.waiter': 'Waiter',
+		'role.chef': 'Chef',
 		'role.kitchen': 'Kitchen',
 		'role.cashier': 'Cashier',
 
@@ -43,6 +44,7 @@ const translations: Record<Locale, Record<string, string>> = {
 		'status.reserved': 'Reserved',
 		'status.cleaning': 'Cleaning',
 		'status.pending': 'Pending',
+		'status.placed': 'Placed',
 		'status.confirmed': 'Confirmed',
 		'status.preparing': 'Preparing',
 		'status.ready': 'Ready',
@@ -255,6 +257,7 @@ const translations: Record<Locale, Record<string, string>> = {
 		'role.owner': 'मालिक',
 		'role.manager': 'व्यवस्थापक',
 		'role.waiter': 'वेटर',
+		'role.chef': 'भान्से',
 		'role.kitchen': 'भान्से',
 		'role.cashier': 'क्यासियर',
 
@@ -264,6 +267,7 @@ const translations: Record<Locale, Record<string, string>> = {
 		'status.reserved': 'आरक्षित',
 		'status.cleaning': 'सफाइ',
 		'status.pending': 'पर्खिरहेको',
+		'status.placed': 'राखिएको',
 		'status.confirmed': 'पुष्टि भएको',
 		'status.preparing': 'तयारी हुँदै',
 		'status.ready': 'तयार',

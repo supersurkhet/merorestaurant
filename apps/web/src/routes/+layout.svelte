@@ -6,7 +6,7 @@
 	import { initTheme } from '$lib/theme';
 	import { onMount } from 'svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	onMount(() => {
 		initTheme();

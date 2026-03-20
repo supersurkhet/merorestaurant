@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '$i18n';
+	import { page } from '$app/state';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$lib/convex-api';
 	import {
@@ -7,9 +8,8 @@
 		UtensilsCrossed, Users, Check, Circle, Loader2, Shield
 	} from 'lucide-svelte';
 
-	// In production, workosUserId comes from auth session
-	// For now, this page shows a placeholder
-	const isAuthenticated = false; // TODO: wire to WorkOS AuthKit session
+	const user = $derived(page.data?.user);
+	const isAuthenticated = $derived(!!user);
 
 	const onboardingSteps = [
 		{ id: 'registered', label: 'Account Created', done: true },

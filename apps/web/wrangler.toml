@@ -9,6 +9,8 @@ binding = "ASSETS"
 
 [vars]
 PUBLIC_CONVEX_URL = ""
-# Set these via `wrangler secret put`:
+WORKOS_CLIENT_ID = "client_01KKYG4JJK79BPD8C3QHRPKVS9"
+
+# Secrets (set via `wrangler secret put`):
 # WORKOS_API_KEY
-# WORKOS_CLIENT_ID
+# WORKOS_COOKIE_PASSWORD

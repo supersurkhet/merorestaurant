@@ -1,23 +1,28 @@
 <script lang="ts">
 	import { t } from '$i18n';
+	import { page } from '$app/state';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '$lib/convex-api';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, ArrowRight, Check, Loader2, Rocket, Building2 } from 'lucide-svelte';
+	import { ArrowRight, Check, Loader2, Rocket, Building2, LogIn } from 'lucide-svelte';
 
 	let convexClient: ReturnType<typeof useConvexClient> | null = null;
 	try { convexClient = useConvexClient(); } catch {}
 
+	const user = $derived(page.data?.user);
+
+	// If user just authenticated, jump to step 2
+	const urlStep = $derived(page.url?.searchParams?.get('step'));
 	let step = $state(1);
+	$effect(() => {
+		if (user && urlStep === 'restaurant') step = 2;
+		else if (user) step = 2;
+	});
+
 	let creating = $state(false);
 	let error = $state('');
 
-	// Step 1: Owner details (will be handled by WorkOS AuthKit in prod)
-	let name = $state('');
-	let email = $state('');
-	let phone = $state('');
-
-	// Step 2: Restaurant info
+	// Restaurant info
 	let restaurantName = $state('');
 	let restaurantNameNe = $state('');
 	let address = $state('');
@@ -29,32 +34,31 @@
 	);
 
 	async function handleSubmit() {
-		if (!convexClient) {
-			error = 'Unable to connect to the server. Please try again.';
+		if (!convexClient || !user) {
+			error = 'Please sign in first.';
 			return;
 		}
 		creating = true;
 		error = '';
 
 		try {
-			// Step 1: Create/upsert user via WorkOS flow
-			// In production: WorkOS AuthKit handles auth, then we call loginOrSignup
+			// Upsert user in Convex with real WorkOS ID
 			const userId = await convexClient.mutation(api.auth.loginOrSignup, {
-				workosUserId: `temp_${Date.now()}`, // placeholder until WorkOS is wired
-				email,
-				name
+				workosUserId: user.workosUserId,
+				email: user.email,
+				name: user.name
 			});
 
-			// Step 2: Register the restaurant tenant
-			const restaurantId = await convexClient.mutation(api.restaurants.register, {
+			// Register the restaurant tenant
+			await convexClient.mutation(api.restaurants.register, {
 				ownerId: userId as any,
 				name: restaurantName,
 				nameNe: restaurantNameNe || undefined,
 				slug: slug || autoSlug,
 				address,
 				city,
-				phone,
-				email: email || undefined
+				phone: '',
+				email: user.email || undefined
 			});
 
 			step = 3;
@@ -86,38 +90,35 @@
 		</div>
 
 		{#if step === 1}
+			<!-- Step 1: Sign in with WorkOS -->
 			<div class="text-center">
 				<h1 class="text-2xl font-bold text-foreground">{$t('register.step1')}</h1>
 				<p class="mt-2 text-sm text-muted-foreground">{$t('register.subtitle')}</p>
 			</div>
-			<div class="mt-8 space-y-4">
-				<div>
-					<label for="reg-name" class="mb-1.5 block text-[13px] font-medium text-foreground">{$t('register.name')}</label>
-					<input id="reg-name" bind:value={name} type="text" class="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
-				</div>
-				<div>
-					<label for="reg-email" class="mb-1.5 block text-[13px] font-medium text-foreground">{$t('register.email')}</label>
-					<input id="reg-email" bind:value={email} type="email" class="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
-				</div>
-				<div>
-					<label for="reg-phone" class="mb-1.5 block text-[13px] font-medium text-foreground">{$t('register.phone')}</label>
-					<input id="reg-phone" bind:value={phone} type="tel" placeholder="+977-" class="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
-				</div>
-				<button
-					onclick={() => { if (name && email) step = 2; }}
-					disabled={!name || !email}
-					class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+			<div class="mt-8">
+				<a
+					href="/auth/login"
+					class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-[15px] font-semibold text-primary-foreground shadow-md transition-all hover:shadow-lg"
 				>
-					{$t('register.next')}
-					<ArrowRight class="h-4 w-4" />
-				</button>
+					<LogIn class="h-5 w-5" />
+					Sign up with WorkOS
+				</a>
+				<p class="mt-4 text-center text-[12px] text-muted-foreground">
+					Already have an account?
+					<a href="/auth/login" class="font-medium text-primary hover:underline">{$t('nav.login')}</a>
+				</p>
 			</div>
+
 		{:else if step === 2}
+			<!-- Step 2: Restaurant info -->
 			<div class="text-center">
 				<div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
 					<Building2 class="h-6 w-6 text-primary" />
 				</div>
 				<h1 class="text-2xl font-bold text-foreground">{$t('register.step2')}</h1>
+				{#if user}
+					<p class="mt-1 text-[13px] text-muted-foreground">Signed in as {user.email}</p>
+				{/if}
 			</div>
 			<div class="mt-8 space-y-4">
 				<div>
@@ -147,25 +148,22 @@
 					<div class="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">{error}</div>
 				{/if}
 
-				<div class="flex gap-3 pt-2">
-					<button onclick={() => (step = 1)} class="flex-1 rounded-xl border border-border py-3 text-sm font-medium text-foreground hover:bg-secondary">
-						{$t('register.back')}
-					</button>
-					<button
-						onclick={handleSubmit}
-						disabled={!restaurantName || !address || !city || creating}
-						class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-					>
-						{#if creating}
-							<Loader2 class="h-4 w-4 animate-spin" />
-							{$t('register.creating')}
-						{:else}
-							{$t('register.submit')}
-						{/if}
-					</button>
-				</div>
+				<button
+					onclick={handleSubmit}
+					disabled={!restaurantName || !address || !city || creating}
+					class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+				>
+					{#if creating}
+						<Loader2 class="h-4 w-4 animate-spin" />
+						{$t('register.creating')}
+					{:else}
+						{$t('register.submit')}
+					{/if}
+				</button>
 			</div>
+
 		{:else}
+			<!-- Step 3: Success -->
 			<div class="text-center">
 				<div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 dark:bg-green-950/30">
 					<Rocket class="h-8 w-8 text-green-600 dark:text-green-400" />

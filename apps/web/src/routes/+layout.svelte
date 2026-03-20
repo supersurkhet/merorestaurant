@@ -4,6 +4,7 @@
 	import Footer from '$components/Footer.svelte';
 	import ConvexProvider from '$components/ConvexProvider.svelte';
 	import { initTheme } from '$lib/theme';
+	import { Button } from '$lib/components/ui/button';
 	import { onMount } from 'svelte';
 
 	let { children, data } = $props();
@@ -38,7 +39,7 @@
 			<div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">M</div>
 			<h1 class="mt-4 text-xl font-bold text-foreground">Something went wrong</h1>
 			<p class="mt-2 max-w-md text-sm text-muted-foreground">Please refresh the page or try again later.</p>
-			<button onclick={() => location.reload()} class="mt-6 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground">Refresh</button>
+			<Button onclick={() => location.reload()} class="mt-6">Refresh</Button>
 		</div>
 	{/snippet}
 </svelte:boundary>

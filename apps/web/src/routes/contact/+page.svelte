@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { t } from '$i18n';
 	import { Mail, Phone, MapPin } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Textarea } from '$lib/components/ui/textarea';
 </script>
 
 <svelte:head>
@@ -38,20 +42,20 @@
 
 			<form class="space-y-4" onsubmit={(e) => e.preventDefault()}>
 				<div>
-					<label class="mb-1 block text-[13px] font-medium text-foreground">{$t('contact.form.name')}</label>
-					<input type="text" class="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+					<Label for="contact-name">{$t('contact.form.name')}</Label>
+					<Input id="contact-name" type="text" />
 				</div>
 				<div>
-					<label class="mb-1 block text-[13px] font-medium text-foreground">{$t('contact.form.email')}</label>
-					<input type="email" class="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+					<Label for="contact-email">{$t('contact.form.email')}</Label>
+					<Input id="contact-email" type="email" />
 				</div>
 				<div>
-					<label class="mb-1 block text-[13px] font-medium text-foreground">{$t('contact.form.message')}</label>
-					<textarea rows="5" class="w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"></textarea>
+					<Label for="contact-msg">{$t('contact.form.message')}</Label>
+					<Textarea id="contact-msg" rows={5} />
 				</div>
-				<button class="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+				<Button class="w-full">
 					{$t('contact.form.send')}
-				</button>
+				</Button>
 			</form>
 		</div>
 	</div>

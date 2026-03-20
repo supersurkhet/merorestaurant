@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { t } from '$i18n';
 	import { AlertTriangle, Home, ArrowLeft } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
 </script>
 
 <svelte:head>
@@ -14,9 +15,7 @@
 			<AlertTriangle class="h-10 w-10 text-red-500" />
 		</div>
 
-		<h1 class="font-[var(--font-display)] text-6xl font-bold text-foreground">
-			{page.status}
-		</h1>
+		<h1 class="text-6xl font-bold text-foreground">{page.status}</h1>
 
 		<p class="mt-4 text-lg text-muted-foreground">
 			{#if page.status === 404}
@@ -29,25 +28,14 @@
 		</p>
 
 		<div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-			<a
-				href="/"
-				class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-			>
+			<Button href="/">
 				<Home class="h-4 w-4" />
-				{$t('order.backToHome')}
-			</a>
-			<button
-				onclick={() => history.back()}
-				class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 font-semibold text-foreground transition-colors hover:bg-secondary"
-			>
+				Home
+			</Button>
+			<Button variant="outline" onclick={() => history.back()}>
 				<ArrowLeft class="h-4 w-4" />
 				Go Back
-			</button>
-		</div>
-
-		<div class="mt-12 border-t border-border pt-6">
-			<span class="text-3xl">🍛</span>
-			<p class="mt-2 text-sm font-medium text-foreground">{$t('site.name')}</p>
+			</Button>
 		</div>
 	</div>
 </section>

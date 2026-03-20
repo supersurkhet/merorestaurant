@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from '$i18n';
 	import { Check, X, ChevronDown, ArrowRight } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
 
 	let openFaq = $state<number | null>(null);
 
@@ -114,13 +115,14 @@
 			<h2 class="mb-8 text-center text-2xl font-bold text-foreground">{$t('pricing.faq.title')}</h2>
 			{#each faqKeys as key, i}
 				<div class="border-b border-border">
-					<button
-						class="flex w-full items-center justify-between py-4 text-left text-[14px] font-medium text-foreground"
+					<Button
+						variant="ghost"
+						class="flex w-full items-center justify-between py-4 text-left text-[14px] font-medium text-foreground h-auto rounded-none"
 						onclick={() => (openFaq = openFaq === i ? null : i)}
 					>
 						{$t(`${key}.q`)}
 						<ChevronDown class="h-4 w-4 shrink-0 text-muted-foreground transition-transform {openFaq === i ? 'rotate-180' : ''}" />
-					</button>
+					</Button>
 					{#if openFaq === i}
 						<p class="pb-4 text-[13px] leading-relaxed text-muted-foreground">{$t(`${key}.a`)}</p>
 					{/if}

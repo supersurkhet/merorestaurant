@@ -11,7 +11,6 @@
 	import type { Role, Staff } from '$lib/types';
 	import {
 		Users,
-		Plus,
 		UserPlus,
 		Shield,
 		ChefHat,
@@ -19,23 +18,42 @@
 		Crown,
 		Mail,
 		Phone,
-		Calendar
+		Calendar,
+		Search,
+		AlertTriangle
 	} from 'lucide-svelte';
 
 	const data = getData();
 	const i18n = getI18n();
 
 	let showInviteDialog = $state(false);
+	let showConfirmDialog = $state(false);
+	let confirmTarget = $state<Staff | null>(null);
+	let searchQuery = $state('');
+	let roleFilter = $state<'all' | Role>('all');
 	let inviteForm = $state({ name: '', email: '', phone: '', role: 'waiter' as Role });
 
-	const roleConfig: Record<Role, { label: string; icon: typeof Shield; color: string }> = {
-		admin: { label: 'Admin', icon: Crown, color: 'text-amber-500' },
-		manager: { label: 'Manager', icon: Shield, color: 'text-blue-500' },
-		kitchen_staff: { label: 'Kitchen', icon: ChefHat, color: 'text-orange-500' },
-		waiter: { label: 'Waiter', icon: Coffee, color: 'text-purple-500' }
+	const roleConfig: Record<Role, { label: string; icon: typeof Shield; color: string; bg: string }> = {
+		admin: { label: 'Admin', icon: Crown, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+		manager: { label: 'Manager', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+		kitchen_staff: { label: 'Kitchen', icon: ChefHat, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+		waiter: { label: 'Waiter', icon: Coffee, color: 'text-purple-500', bg: 'bg-purple-500/10' }
 	};
 
+	const allRoles: Role[] = ['admin', 'manager', 'kitchen_staff', 'waiter'];
+
+	const filteredStaff = $derived(
+		data.staff.filter((s) => {
+			const matchRole = roleFilter === 'all' || s.role === roleFilter;
+			const matchSearch = !searchQuery ||
+				s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				s.email.toLowerCase().includes(searchQuery.toLowerCase());
+			return matchRole && matchSearch;
+		})
+	);
+
 	function inviteStaff() {
+		if (!inviteForm.name || !inviteForm.email) return;
 		data.addStaff({
 			_id: generateId(),
 			...inviteForm,
@@ -44,6 +62,19 @@
 		});
 		showInviteDialog = false;
 		inviteForm = { name: '', email: '', phone: '', role: 'waiter' };
+	}
+
+	function requestToggle(member: Staff) {
+		confirmTarget = member;
+		showConfirmDialog = true;
+	}
+
+	function confirmToggle() {
+		if (confirmTarget) {
+			data.toggleStaffActive(confirmTarget._id);
+		}
+		showConfirmDialog = false;
+		confirmTarget = null;
 	}
 </script>
 
@@ -56,7 +87,7 @@
 				{i18n.t('nav.staff')}
 			</h1>
 			<p class="text-muted-foreground mt-1">
-				{data.staff.filter((s) => s.isActive).length} active staff members
+				{data.staff.filter((s) => s.isActive).length} active of {data.staff.length} total
 			</p>
 		</div>
 		<Button onclick={() => (showInviteDialog = true)}>
@@ -64,73 +95,112 @@
 		</Button>
 	</div>
 
-	<!-- Role Summary -->
+	<!-- Role Summary Cards -->
 	<div class="grid grid-cols-4 gap-4">
-		{#each (['admin', 'manager', 'kitchen_staff', 'waiter'] as Role[]) as role}
+		{#each allRoles as role}
 			{@const config = roleConfig[role]}
 			{@const count = data.staff.filter((s) => s.role === role && s.isActive).length}
-			<Card class="p-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-						<config.icon size={20} class={config.color} />
+			<button
+				class="text-left transition-all {roleFilter === role ? 'ring-2 ring-primary' : ''}"
+				onclick={() => (roleFilter = roleFilter === role ? 'all' : role)}
+			>
+				<Card class="p-4 hover:shadow-md transition-shadow">
+					<div class="flex items-center gap-3">
+						<div class="flex h-10 w-10 items-center justify-center rounded-lg {config.bg}">
+							<config.icon size={20} class={config.color} />
+						</div>
+						<div>
+							<p class="text-2xl font-bold">{count}</p>
+							<p class="text-xs text-muted-foreground">{config.label}</p>
+						</div>
 					</div>
-					<div>
-						<p class="text-2xl font-bold">{count}</p>
-						<p class="text-xs text-muted-foreground">{config.label}</p>
-					</div>
-				</div>
-			</Card>
+				</Card>
+			</button>
 		{/each}
+	</div>
+
+	<!-- Search & Filter -->
+	<div class="flex gap-4">
+		<div class="relative flex-1">
+			<Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+			<Input class="pl-9" placeholder="Search staff by name or email..." bind:value={searchQuery} />
+		</div>
+		<div class="flex gap-1.5">
+			<Button variant={roleFilter === 'all' ? 'default' : 'outline'} size="sm" onclick={() => (roleFilter = 'all')}>
+				All
+			</Button>
+			{#each allRoles as role}
+				{@const config = roleConfig[role]}
+				<Button variant={roleFilter === role ? 'default' : 'outline'} size="sm" onclick={() => (roleFilter = role)}>
+					{config.label}
+				</Button>
+			{/each}
+		</div>
 	</div>
 
 	<!-- Staff List -->
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-		{#each data.staff as member}
-			{@const config = roleConfig[member.role]}
-			<Card class="p-5 hover:shadow-md transition-shadow {!member.isActive ? 'opacity-60' : ''}">
-				<div class="flex items-start gap-4">
-					<!-- Avatar -->
-					<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-lg shrink-0">
-						{member.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-					</div>
-
-					<div class="flex-1 min-w-0 space-y-2">
-						<div class="flex items-center justify-between">
-							<h3 class="font-semibold truncate">{member.name}</h3>
-							<Badge variant={member.isActive ? 'success' : 'secondary'}>
-								{member.isActive ? 'Active' : 'Inactive'}
-							</Badge>
+	{#if filteredStaff.length === 0}
+		<div class="flex flex-col items-center justify-center py-16 text-muted-foreground">
+			<Users size={48} class="mb-4 opacity-50" />
+			<p class="text-lg">No staff found</p>
+		</div>
+	{:else}
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+			{#each filteredStaff as member (member._id)}
+				{@const config = roleConfig[member.role]}
+				<Card class="p-5 hover:shadow-md transition-all {!member.isActive ? 'opacity-50 grayscale-[30%]' : ''}">
+					<div class="flex items-start gap-4">
+						<!-- Avatar -->
+						<div class="flex h-14 w-14 items-center justify-center rounded-full {config.bg} {config.color} font-bold text-lg shrink-0">
+							{member.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
 						</div>
 
-						<div class="flex items-center gap-1">
-							<config.icon size={14} class={config.color} />
-							<span class="text-sm {config.color} font-medium">{config.label}</span>
-						</div>
-
-						<div class="space-y-1 text-xs text-muted-foreground">
-							<div class="flex items-center gap-1.5">
-								<Mail size={12} /> {member.email}
+						<div class="flex-1 min-w-0 space-y-2">
+							<div class="flex items-center justify-between">
+								<h3 class="font-semibold truncate">{member.name}</h3>
+								<Badge variant={member.isActive ? 'success' : 'secondary'}>
+									{member.isActive ? 'Active' : 'Inactive'}
+								</Badge>
 							</div>
-							{#if member.phone}
-								<div class="flex items-center gap-1.5">
-									<Phone size={12} /> {member.phone}
+
+							<!-- Role badge -->
+							<div class="flex items-center gap-1.5">
+								<div class="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {config.bg} {config.color}">
+									<config.icon size={11} />
+									{config.label}
 								</div>
-							{/if}
-							<div class="flex items-center gap-1.5">
-								<Calendar size={12} /> Joined {formatDate(member.joinedAt)}
+							</div>
+
+							<div class="space-y-1 text-xs text-muted-foreground">
+								<div class="flex items-center gap-1.5">
+									<Mail size={12} />
+									<span class="truncate">{member.email}</span>
+								</div>
+								{#if member.phone}
+									<div class="flex items-center gap-1.5">
+										<Phone size={12} /> {member.phone}
+									</div>
+								{/if}
+								<div class="flex items-center gap-1.5">
+									<Calendar size={12} /> Joined {formatDate(member.joinedAt)}
+								</div>
+							</div>
+
+							<div class="flex gap-2 pt-1">
+								<Button
+									size="sm"
+									variant={member.isActive ? 'outline' : 'default'}
+									onclick={() => requestToggle(member)}
+								>
+									{member.isActive ? 'Deactivate' : 'Activate'}
+								</Button>
 							</div>
 						</div>
-
-						<div class="flex gap-2 pt-1">
-							<Button size="sm" variant="outline" onclick={() => data.toggleStaffActive(member._id)}>
-								{member.isActive ? 'Deactivate' : 'Activate'}
-							</Button>
-						</div>
 					</div>
-				</div>
-			</Card>
-		{/each}
-	</div>
+				</Card>
+			{/each}
+		</div>
+	{/if}
 </div>
 
 <!-- Invite Staff Dialog -->
@@ -140,29 +210,62 @@
 	</h2>
 	<div class="space-y-4">
 		<div>
-			<label class="text-sm font-medium" for="staffName">Full Name</label>
+			<label class="text-sm font-medium mb-1 block" for="staffName">Full Name</label>
 			<Input id="staffName" bind:value={inviteForm.name} placeholder="Enter full name" />
 		</div>
 		<div>
-			<label class="text-sm font-medium" for="staffEmail">Email</label>
+			<label class="text-sm font-medium mb-1 block" for="staffEmail">Email</label>
 			<Input id="staffEmail" type="email" bind:value={inviteForm.email} placeholder="email@example.com" />
 		</div>
 		<div>
-			<label class="text-sm font-medium" for="staffPhone">Phone</label>
+			<label class="text-sm font-medium mb-1 block" for="staffPhone">Phone</label>
 			<Input id="staffPhone" bind:value={inviteForm.phone} placeholder="98XXXXXXXX" />
 		</div>
 		<div>
-			<label class="text-sm font-medium" for="staffRole">{i18n.t('staff.role')}</label>
+			<label class="text-sm font-medium mb-1 block" for="staffRole">{i18n.t('staff.role')}</label>
 			<Select id="staffRole" bind:value={inviteForm.role}>
-				<option value="admin">Admin</option>
-				<option value="manager">Manager</option>
-				<option value="kitchen_staff">Kitchen Staff</option>
-				<option value="waiter">Waiter</option>
+				{#each allRoles as role}
+					<option value={role}>{roleConfig[role].label}</option>
+				{/each}
 			</Select>
 		</div>
 		<div class="flex justify-end gap-2 pt-2">
 			<Button variant="outline" onclick={() => (showInviteDialog = false)}>{i18n.t('common.cancel')}</Button>
-			<Button onclick={inviteStaff}>{i18n.t('staff.invite')}</Button>
+			<Button onclick={inviteStaff} disabled={!inviteForm.name || !inviteForm.email}>
+				{i18n.t('staff.invite')}
+			</Button>
 		</div>
 	</div>
+</Dialog>
+
+<!-- Confirm Toggle Dialog -->
+<Dialog bind:open={showConfirmDialog}>
+	{#if confirmTarget}
+		<div class="text-center space-y-4">
+			<div class="flex justify-center">
+				<div class="flex h-14 w-14 items-center justify-center rounded-full bg-warning/10">
+					<AlertTriangle size={28} class="text-warning" />
+				</div>
+			</div>
+			<h2 class="text-lg font-bold">
+				{confirmTarget.isActive ? 'Deactivate' : 'Activate'} Staff Member
+			</h2>
+			<p class="text-sm text-muted-foreground">
+				{#if confirmTarget.isActive}
+					<strong>{confirmTarget.name}</strong> will no longer be able to access the system. You can reactivate them later.
+				{:else}
+					<strong>{confirmTarget.name}</strong> will regain access to the system with their <strong>{roleConfig[confirmTarget.role].label}</strong> role.
+				{/if}
+			</p>
+			<div class="flex gap-2 justify-center pt-2">
+				<Button variant="outline" onclick={() => (showConfirmDialog = false)}>Cancel</Button>
+				<Button
+					variant={confirmTarget.isActive ? 'destructive' : 'success'}
+					onclick={confirmToggle}
+				>
+					{confirmTarget.isActive ? 'Deactivate' : 'Activate'}
+				</Button>
+			</div>
+		</div>
+	{/if}
 </Dialog>

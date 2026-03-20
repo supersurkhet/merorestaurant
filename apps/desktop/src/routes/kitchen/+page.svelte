@@ -6,13 +6,71 @@
 	import { getI18n } from '$lib/stores/i18n.svelte';
 	import { formatCurrency, timeAgo } from '$lib/utils';
 	import type { OrderStatus } from '$lib/types';
-	import { ChefHat, Clock, CheckCircle, ArrowRight, Bell, Flame } from 'lucide-svelte';
+	import {
+		ChefHat,
+		Clock,
+		CheckCircle,
+		ArrowRight,
+		Bell,
+		BellOff,
+		Flame,
+		Printer,
+		Timer,
+		RefreshCw
+	} from 'lucide-svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	const data = getData();
 	const i18n = getI18n();
 
 	type KitchenFilter = 'all' | 'pending' | 'confirmed' | 'preparing' | 'ready';
 	let activeFilter = $state<KitchenFilter>('all');
+	let soundEnabled = $state(true);
+	let lastRefresh = $state(Date.now());
+	let secondsSinceRefresh = $state(0);
+	let previousOrderCount = $state(data.activeOrders.length);
+	let refreshInterval: ReturnType<typeof setInterval>;
+
+	onMount(() => {
+		refreshInterval = setInterval(() => {
+			secondsSinceRefresh = Math.floor((Date.now() - lastRefresh) / 1000);
+
+			// Check for new orders and play notification
+			const currentCount = data.activeOrders.length;
+			if (currentCount > previousOrderCount && soundEnabled) {
+				playNotification();
+			}
+			previousOrderCount = currentCount;
+		}, 1000);
+	});
+
+	onDestroy(() => {
+		clearInterval(refreshInterval);
+	});
+
+	function playNotification() {
+		try {
+			const ctx = new AudioContext();
+			const osc = ctx.createOscillator();
+			const gain = ctx.createGain();
+			osc.connect(gain);
+			gain.connect(ctx.destination);
+			osc.frequency.value = 880;
+			osc.type = 'sine';
+			gain.gain.value = 0.3;
+			gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+			osc.start(ctx.currentTime);
+			osc.stop(ctx.currentTime + 0.5);
+		} catch {
+			// Audio not available in some environments
+		}
+	}
+
+	function refreshNow() {
+		lastRefresh = Date.now();
+		secondsSinceRefresh = 0;
+		// TODO: Re-fetch from Convex subscription
+	}
 
 	const filteredOrders = $derived(
 		data.activeOrders
@@ -39,20 +97,57 @@
 	}
 
 	function statusColor(status: string): string {
-		const map: Record<string, string> = {
+		return {
 			pending: 'border-l-amber-400',
 			confirmed: 'border-l-blue-400',
 			preparing: 'border-l-orange-500',
 			ready: 'border-l-emerald-500'
-		};
-		return map[status] ?? '';
+		}[status] ?? '';
 	}
 
-	function urgencyLevel(createdAt: number): 'normal' | 'warning' | 'urgent' {
-		const minutes = (Date.now() - createdAt) / 60_000;
-		if (minutes > 30) return 'urgent';
-		if (minutes > 15) return 'warning';
-		return 'normal';
+	function orderWaitMinutes(createdAt: number): number {
+		return Math.floor((Date.now() - createdAt) / 60_000);
+	}
+
+	function urgencyColor(minutes: number): string {
+		if (minutes > 20) return 'text-red-500 bg-red-500/10';
+		if (minutes > 10) return 'text-amber-500 bg-amber-500/10';
+		return 'text-emerald-500 bg-emerald-500/10';
+	}
+
+	function urgencyRing(minutes: number): string {
+		if (minutes > 20) return 'ring-2 ring-red-500/40';
+		if (minutes > 10) return 'ring-1 ring-amber-500/30';
+		return '';
+	}
+
+	function getItemPrepTime(menuItemId: string): number {
+		const item = data.menuItems.find((m) => m._id === menuItemId);
+		return item?.preparationTime ?? 15;
+	}
+
+	function printOrder(orderId: string) {
+		const order = data.orders.find((o) => o._id === orderId);
+		if (!order) return;
+		const ticket = [
+			'================================',
+			'     MERO RESTAURANT - KITCHEN   ',
+			'================================',
+			`Order: #${order._id.slice(-4)}`,
+			`Table: ${order.tableNumber ? `T${order.tableNumber}` : 'Takeaway'}`,
+			`Time: ${new Date(order.createdAt).toLocaleTimeString()}`,
+			'--------------------------------',
+			...order.items.map((item) => `${item.quantity}x ${item.name}`),
+			'--------------------------------',
+			...(order.notes ? [`NOTE: ${order.notes}`, '--------------------------------'] : []),
+			`Total: ${formatCurrency(order.totalAmount)}`,
+			'================================'
+		].join('\n');
+		const win = window.open('', '_blank', 'width=300,height=500');
+		if (win) {
+			win.document.write(`<pre style="font-family:monospace;font-size:12px;">${ticket}</pre>`);
+			win.print();
+		}
 	}
 </script>
 
@@ -66,8 +161,32 @@
 			</h1>
 			<p class="text-muted-foreground mt-1">Real-time order queue</p>
 		</div>
-		<div class="flex items-center gap-2">
-			<Bell size={20} class="text-muted-foreground" />
+		<div class="flex items-center gap-3">
+			<!-- Auto-refresh timer -->
+			<button
+				class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors"
+				onclick={refreshNow}
+			>
+				<RefreshCw size={12} />
+				Updated {secondsSinceRefresh}s ago
+			</button>
+
+			<!-- Sound toggle -->
+			<button
+				class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors {soundEnabled ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted-foreground'}"
+				onclick={() => {
+					soundEnabled = !soundEnabled;
+					if (soundEnabled) playNotification();
+				}}
+			>
+				{#if soundEnabled}
+					<Bell size={14} />
+				{:else}
+					<BellOff size={14} />
+				{/if}
+				{soundEnabled ? 'Sound On' : 'Sound Off'}
+			</button>
+
 			<Badge variant="default">{data.activeOrders.length} active</Badge>
 		</div>
 	</div>
@@ -99,14 +218,8 @@
 	{:else}
 		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
 			{#each filteredOrders as order}
-				{@const urgency = urgencyLevel(order.createdAt)}
-				<Card
-					class="border-l-4 {statusColor(order.status)} overflow-hidden {urgency === 'urgent'
-						? 'ring-2 ring-destructive/50 animate-pulse'
-						: urgency === 'warning'
-							? 'ring-1 ring-warning/50'
-							: ''}"
-				>
+				{@const waitMin = orderWaitMinutes(order.createdAt)}
+				<Card class="border-l-4 {statusColor(order.status)} overflow-hidden {urgencyRing(waitMin)}">
 					<!-- Order Header -->
 					<div class="flex items-center justify-between p-4 pb-2">
 						<div class="flex items-center gap-3">
@@ -122,32 +235,44 @@
 								<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
 									<Clock size={12} />
 									{timeAgo(order.createdAt)}
-									{#if urgency === 'urgent'}
-										<Flame size={12} class="text-destructive" />
-									{/if}
 								</div>
 							</div>
 						</div>
-						<Badge
-							variant={order.status === 'ready'
-								? 'success'
-								: order.status === 'preparing'
-									? 'default'
-									: order.status === 'pending'
-										? 'warning'
-										: 'secondary'}
-						>
-							{i18n.t(`status.${order.status}`)}
-						</Badge>
+						<div class="flex items-center gap-2">
+							<!-- Urgency timer pill -->
+							<div class="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold {urgencyColor(waitMin)}">
+								{#if waitMin > 20}
+									<Flame size={11} />
+								{:else}
+									<Timer size={11} />
+								{/if}
+								{waitMin}m
+							</div>
+							<Badge
+								variant={order.status === 'ready'
+									? 'success'
+									: order.status === 'preparing'
+										? 'default'
+										: order.status === 'pending'
+											? 'warning'
+											: 'secondary'}
+							>
+								{i18n.t(`status.${order.status}`)}
+							</Badge>
+						</div>
 					</div>
 
-					<!-- Items -->
-					<div class="px-4 py-2 space-y-1.5">
+					<!-- Items with prep time -->
+					<div class="px-4 py-2 space-y-1">
 						{#each order.items as item}
+							{@const prepTime = getItemPrepTime(item.menuItemId)}
 							<div class="flex items-center justify-between text-sm">
 								<span>
 									<span class="font-medium text-primary">{item.quantity}x</span>
 									{item.name}
+								</span>
+								<span class="flex items-center gap-1 text-[10px] text-muted-foreground">
+									<Timer size={9} />{prepTime}m
 								</span>
 							</div>
 						{/each}
@@ -155,14 +280,20 @@
 
 					<!-- Notes -->
 					{#if order.notes}
-						<div class="mx-4 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
-							{order.notes}
+						<div class="mx-4 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning-foreground border border-warning/20">
+							<span class="font-semibold">Note:</span> {order.notes}
 						</div>
 					{/if}
 
 					<!-- Actions -->
 					<div class="flex items-center justify-between border-t p-4 mt-2">
-						<span class="text-sm font-semibold">{formatCurrency(order.totalAmount)}</span>
+						<div class="flex items-center gap-2">
+							<span class="text-sm font-semibold">{formatCurrency(order.totalAmount)}</span>
+							<!-- Print button -->
+							<Button size="icon" variant="ghost" class="h-7 w-7" onclick={() => printOrder(order._id)}>
+								<Printer size={13} class="text-muted-foreground" />
+							</Button>
+						</div>
 						{#if nextStatus(order.status)}
 							{@const next = nextStatus(order.status)!}
 							<Button

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '$lib/../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import ConvexProvider from '$lib/components/ConvexProvider.svelte';
 	import { getTheme } from '$lib/stores/theme.svelte';
 	import { onMount } from 'svelte';
 
@@ -13,9 +14,11 @@
 	});
 </script>
 
-<div class="flex h-screen overflow-hidden bg-background">
-	<Sidebar />
-	<main class="flex-1 overflow-y-auto">
-		{@render children()}
-	</main>
-</div>
+<ConvexProvider>
+	<div class="flex h-screen overflow-hidden bg-background">
+		<Sidebar />
+		<main class="flex-1 overflow-y-auto">
+			{@render children()}
+		</main>
+	</div>
+</ConvexProvider>

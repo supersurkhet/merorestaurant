@@ -1,23 +1,22 @@
 /**
  * Typed Convex function references for the mobile app.
  *
- * Since the Convex functions live in apps/web/convex/, the mobile app
- * cannot import _generated/api directly. Instead we use makeFunctionReference
- * to create typed references to the same deployed functions.
+ * Root convex/ functions: restaurants, categories, menuItems, orders, orderItems
+ * apps/web/convex/ functions: tables, wifi, payments, staff (not yet in root)
  *
- * These references work with useQuery() and useMutation() from convex/react.
+ * We use makeFunctionReference to call these without _generated/api.
  */
 import { makeFunctionReference } from 'convex/server';
 import type { Id } from './convex-types';
 
-// --- Restaurants ---
 export const api = {
   restaurants: {
-    getBySlug: makeFunctionReference<
-      'query',
-      { slug: string },
-      any | null
-    >('restaurants:getBySlug'),
+    getBySlug: makeFunctionReference<'query', { slug: string }, any | null>(
+      'restaurants:getBySlug',
+    ),
+    get: makeFunctionReference<'query', { id: Id<'restaurants'> }, any | null>(
+      'restaurants:get',
+    ),
   },
 
   categories: {
@@ -26,12 +25,18 @@ export const api = {
       { restaurantId: Id<'restaurants'> },
       any[]
     >('categories:listByRestaurant'),
+
+    listActiveByRestaurant: makeFunctionReference<
+      'query',
+      { restaurantId: Id<'restaurants'> },
+      any[]
+    >('categories:listActiveByRestaurant'),
   },
 
   menuItems: {
     listByRestaurant: makeFunctionReference<
       'query',
-      { restaurantId: Id<'restaurants'>; availableOnly?: boolean },
+      { restaurantId: Id<'restaurants'>; onlyAvailable?: boolean },
       any[]
     >('menuItems:listByRestaurant'),
 
@@ -40,28 +45,10 @@ export const api = {
       { categoryId: Id<'categories'> },
       any[]
     >('menuItems:listByCategory'),
-  },
 
-  tables: {
-    getByQrCode: makeFunctionReference<
-      'query',
-      { qrCode: string },
-      any | null
-    >('tables:getByQrCode'),
-
-    listByRestaurant: makeFunctionReference<
-      'query',
-      { restaurantId: Id<'restaurants'> },
-      any[]
-    >('tables:listByRestaurant'),
-  },
-
-  wifi: {
-    getActiveByRestaurant: makeFunctionReference<
-      'query',
-      { restaurantId: Id<'restaurants'> },
-      { _id: string; ssid: string; password: string; encryptionType: string; qrString: string } | null
-    >('wifi:getActiveByRestaurant'),
+    get: makeFunctionReference<'query', { id: Id<'menuItems'> }, any | null>(
+      'menuItems:get',
+    ),
   },
 
   orders: {
@@ -79,7 +66,7 @@ export const api = {
         customerPhone?: string;
         notes?: string;
       },
-      { orderId: string; orderNumber: string }
+      { orderId: string; orderNumber: string; total: number }
     >('orders:placeOrder'),
 
     getByRestaurant: makeFunctionReference<
@@ -87,6 +74,12 @@ export const api = {
       { restaurantId: Id<'restaurants'>; status?: string },
       any[]
     >('orders:getByRestaurant'),
+
+    getActiveByRestaurant: makeFunctionReference<
+      'query',
+      { restaurantId: Id<'restaurants'> },
+      any[]
+    >('orders:getActiveByRestaurant'),
 
     getByTable: makeFunctionReference<
       'query',
@@ -96,9 +89,13 @@ export const api = {
 
     getByOrderNumber: makeFunctionReference<
       'query',
-      { restaurantId: Id<'restaurants'>; orderNumber: string },
+      { orderNumber: string },
       any | null
     >('orders:getByOrderNumber'),
+
+    get: makeFunctionReference<'query', { id: Id<'orders'> }, any | null>(
+      'orders:get',
+    ),
   },
 
   orderItems: {
@@ -107,6 +104,27 @@ export const api = {
       { orderId: Id<'orders'> },
       any[]
     >('orderItems:getByOrder'),
+  },
+
+  // These are in apps/web/convex/ — may not be deployed to root yet
+  // Calls will fail gracefully if functions don't exist on the deployment
+  tables: {
+    getByQrCode: makeFunctionReference<'query', { qrCode: string }, any | null>(
+      'tables:getByQrCode',
+    ),
+    listByRestaurant: makeFunctionReference<
+      'query',
+      { restaurantId: Id<'restaurants'> },
+      any[]
+    >('tables:listByRestaurant'),
+  },
+
+  wifi: {
+    getActiveByRestaurant: makeFunctionReference<
+      'query',
+      { restaurantId: Id<'restaurants'> },
+      any | null
+    >('wifi:getActiveByRestaurant'),
   },
 
   payments: {

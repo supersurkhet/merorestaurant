@@ -61,7 +61,7 @@ export interface Table {
 }
 
 export type OrderStatus =
-  | 'pending'
+  | 'placed'
   | 'confirmed'
   | 'preparing'
   | 'ready'

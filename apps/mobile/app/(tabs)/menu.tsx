@@ -35,7 +35,7 @@ export default function MenuScreen() {
 
   const menuItems = useQuery(
     api.menuItems.listByRestaurant,
-    restaurantId ? { restaurantId, availableOnly: true } : 'skip',
+    restaurantId ? { restaurantId, onlyAvailable: true } : 'skip',
   ) as MenuItem[] | undefined;
 
   const isLoading = categories === undefined || menuItems === undefined;

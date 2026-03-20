@@ -10,7 +10,7 @@ import { OrdersSkeleton } from '../../components/ui/Skeleton';
 import type { Order, OrderItem as ConvexOrderItem } from '../../lib/convex-types';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: 'Placed', color: '#f59e0b', bg: '#fef3c7' },
+  placed: { label: 'Placed', color: '#f59e0b', bg: '#fef3c7' },
   confirmed: { label: 'Confirmed', color: '#3b82f6', bg: '#dbeafe' },
   preparing: { label: 'Preparing', color: '#e63946', bg: '#fee2e2' },
   ready: { label: 'Ready', color: '#10b981', bg: '#ecfdf5' },
@@ -24,7 +24,7 @@ type OrderWithItems = Order & { items?: ConvexOrderItem[] };
 function OrderCard({ order }: { order: OrderWithItems }) {
   const colors = useThemeColor();
   const router = useRouter();
-  const statusConfig = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
+  const statusConfig = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.placed;
   const isActive = order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'served';
 
   const itemSummary = order.items

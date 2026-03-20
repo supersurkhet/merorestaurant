@@ -27,11 +27,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import { useRestaurant } from '../../lib/restaurant-context';
 import { api } from '../../lib/convex-api';
 import type { Order, OrderItem as ConvexOrderItem } from '../../lib/convex-types';
 
-type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served';
+type OrderStatus = 'placed' | 'confirmed' | 'preparing' | 'ready' | 'served';
 
 const ORDER_STEPS: {
   key: OrderStatus;
@@ -41,7 +40,7 @@ const ORDER_STEPS: {
   description: string;
   estimateMin: number;
 }[] = [
-  { key: 'pending', label: 'Order Placed', labelNe: '\u0905\u0930\u094D\u0921\u0930 \u0930\u093E\u0916\u093F\u092F\u094B', icon: CheckCircle2, description: 'Your order has been received', estimateMin: 0 },
+  { key: 'placed', label: 'Order Placed', labelNe: '\u0905\u0930\u094D\u0921\u0930 \u0930\u093E\u0916\u093F\u092F\u094B', icon: CheckCircle2, description: 'Your order has been received', estimateMin: 0 },
   { key: 'confirmed', label: 'Confirmed', labelNe: '\u092A\u0941\u0937\u094D\u091F\u093F \u092D\u092F\u094B', icon: CheckCircle2, description: 'Kitchen has confirmed your order', estimateMin: 2 },
   { key: 'preparing', label: 'Preparing', labelNe: '\u0924\u092F\u093E\u0930\u0940 \u0939\u0941\u0901\u0926\u0948\u091B', icon: ChefHat, description: 'Your food is being freshly prepared', estimateMin: 15 },
   { key: 'ready', label: 'Ready to Serve', labelNe: '\u0938\u0930\u094D\u092D \u0917\u0930\u094D\u0928 \u0924\u092F\u093E\u0930', icon: Bell, description: 'Your food is ready!', estimateMin: 20 },
@@ -49,7 +48,7 @@ const ORDER_STEPS: {
 ];
 
 const STATUS_COLORS: Record<OrderStatus, { dot: string; glow: string }> = {
-  pending: { dot: '#f59e0b', glow: 'rgba(245,158,11,0.15)' },
+  placed: { dot: '#f59e0b', glow: 'rgba(245,158,11,0.15)' },
   confirmed: { dot: '#3b82f6', glow: 'rgba(59,130,246,0.15)' },
   preparing: { dot: '#e63946', glow: 'rgba(230,57,70,0.15)' },
   ready: { dot: '#10b981', glow: 'rgba(16,185,129,0.15)' },
@@ -60,13 +59,12 @@ export default function OrderDetailScreen() {
   const colors = useThemeColor();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { restaurantId } = useRestaurant();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Real-time Convex subscription
+  // Real-time Convex subscription — updates live when kitchen changes status
   const order = useQuery(
     api.orders.getByOrderNumber,
-    restaurantId && id ? { restaurantId, orderNumber: id } : 'skip',
+    id ? { orderNumber: id } : 'skip',
   ) as (Order & { items?: ConvexOrderItem[] }) | null | undefined;
 
   const onRefresh = useCallback(() => {
@@ -111,10 +109,10 @@ export default function OrderDetailScreen() {
     );
   }
 
-  const orderStatus = (order.status ?? 'pending') as OrderStatus;
+  const orderStatus = (order.status ?? 'placed') as OrderStatus;
   const currentIdx = Math.max(0, ORDER_STEPS.findIndex((s) => s.key === orderStatus));
   const currentStep = ORDER_STEPS[currentIdx];
-  const statusColor = STATUS_COLORS[orderStatus] ?? STATUS_COLORS.pending;
+  const statusColor = STATUS_COLORS[orderStatus] ?? STATUS_COLORS.placed;
   const orderItems = order.items ?? [];
 
   const minutesSincePlaced = Math.round((Date.now() - order._creationTime) / 60000);
@@ -231,7 +229,7 @@ export default function OrderDetailScreen() {
           </View>
         </Animated.View>
 
-        {orderStatus !== 'served' && orderStatus !== 'pending' && (
+        {orderStatus !== 'served' && orderStatus !== 'placed' && (
           <Animated.View entering={FadeInDown.delay(400).duration(300)}>
             <Pressable
               style={[styles.payBtn, { backgroundColor: colors.primary }]}

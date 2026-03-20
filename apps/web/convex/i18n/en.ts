@@ -1,0 +1,32 @@
+export const en: Record<string, string> = {
+  "order.not_found": "Order not found",
+  "order.empty_items": "Order must have at least one item",
+  "order.already_cancelled": "Order is already cancelled",
+  "order.already_completed": "Order is already completed",
+  "order.cannot_cancel": "Cannot cancel an order that is already {status}",
+  "order.invalid_status_transition":
+    "Cannot change order status from {from} to {to}",
+  "menu.item_unavailable": '"{name}" is currently unavailable',
+  "menu.item_not_found": "Menu item not found: {id}",
+  "menu.category_has_items":
+    "Cannot delete a category that still has menu items. Remove or reassign them first.",
+  "table.not_found": "Table not found",
+  "table.already_occupied": "Table is already occupied",
+  "table.cannot_delete_occupied": "Cannot delete an occupied table",
+  "table.qr_code_in_use": 'QR code "{qrCode}" is already in use',
+  "payment.not_found": "Payment not found",
+  "payment.already_completed": "Payment has already been completed",
+  "payment.invalid_amount": "Payment amount does not match order total",
+  "auth.unauthorized": "You are not authorized to perform this action",
+  "auth.role_required": "This action requires {role} role",
+  "auth.no_active_staff": "No active staff account for this user",
+  "auth.invalid_jwt": "Invalid JWT format",
+  "auth.jwt_expired": "JWT has expired",
+  "auth.access_denied":
+    'Access denied: requires one of [{roles}], you have "{current}"',
+  "wifi.not_configured": "WiFi is not configured for this restaurant",
+  "restaurant.not_found": "Restaurant not found",
+  "restaurant.slug_taken": 'Restaurant with slug "{slug}" already exists',
+  "seed.already_seeded": "Database already seeded (mero-surkhet exists)",
+  "staff.not_found": "Staff member not found",
+};

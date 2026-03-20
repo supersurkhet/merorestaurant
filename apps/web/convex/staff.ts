@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { throwLocalizedError } from "./i18n";
 
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -73,7 +74,7 @@ export const toggleActive = mutation({
   args: { id: v.id("staff") },
   handler: async (ctx, args) => {
     const member = await ctx.db.get(args.id);
-    if (!member) throw new Error("Staff member not found");
+    if (!member) throwLocalizedError("staff.not_found");
     await ctx.db.patch(args.id, { isActive: !member.isActive });
   },
 });

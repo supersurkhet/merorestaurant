@@ -1,59 +1,146 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 
 const http = httpRouter();
 
-// ── Payment webhook ─────────────────────────────────────────────────
-// Called by Khalti / eSewa / Fonepay after customer completes payment.
-// Each gateway POSTs a JSON body with its own shape; we normalise here.
+// ── Khalti payment verification ─────────────────────────────────────
+// Khalti redirects user back with pidx, then we verify server-side.
 http.route({
-  path: "/api/payments/webhook",
+  path: "/api/payments/khalti/verify",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     try {
       const body = await request.json();
+      const { paymentId, pidx } = body;
 
-      // Normalise across gateways
-      const gateway: string = body.gateway ?? "unknown";
-      const paymentId: string | undefined =
-        body.paymentId ?? body.purchase_order_id;
-      const externalRef: string | undefined =
-        body.externalRef ?? body.transaction_id ?? body.pidx;
-      const status: string | undefined = body.status;
+      if (!paymentId || !pidx) {
+        return jsonResponse(
+          { error: "Missing paymentId or pidx" },
+          400,
+        );
+      }
+
+      // Verify with Khalti lookup API
+      // In production: POST https://khalti.com/api/v2/epayment/lookup/
+      // with { pidx } and Authorization header
+      // For now, we trust the callback and mark completed
+      const isVerified = true; // TODO: actual Khalti API call
+
+      await ctx.runMutation(api.payments.updateStatus, {
+        id: paymentId as any,
+        status: isVerified ? "completed" : "failed",
+        externalRef: `khalti-${pidx}`,
+      });
+
+      return jsonResponse({ success: true, gateway: "khalti", pidx });
+    } catch (error) {
+      return jsonResponse(
+        { error: errorMessage(error) },
+        500,
+      );
+    }
+  }),
+});
+
+// ── eSewa payment verification ──────────────────────────────────────
+// eSewa redirects with encoded transaction data in query params.
+http.route({
+  path: "/api/payments/esewa/verify",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      const { paymentId, encodedData } = body;
 
       if (!paymentId) {
         return jsonResponse({ error: "Missing paymentId" }, 400);
       }
 
-      // TODO: In production, verify the callback signature with each
-      // gateway's secret key before trusting the payload.
-      // - Khalti: verify via /api/v2/payment/verify/ with pidx
-      // - eSewa: verify signature with merchant secret
-      // - Fonepay: verify HMAC with shared key
+      // Decode eSewa response (base64 encoded JSON)
+      // Contains: transaction_code, status, total_amount, transaction_uuid, product_code
+      let esewaData: Record<string, unknown> = {};
+      if (encodedData) {
+        try {
+          esewaData = JSON.parse(atob(encodedData));
+        } catch {
+          return jsonResponse({ error: "Invalid eSewa encoded data" }, 400);
+        }
+      }
 
-      const isSuccess =
-        status === "Completed" || // Khalti
-        status === "COMPLETE" || // eSewa
-        status === "success"; // Fonepay / generic
+      const transactionCode =
+        (esewaData.transaction_code as string) ?? "unknown";
+      const status = esewaData.status as string;
+      const isSuccess = status === "COMPLETE";
+
+      // TODO: Verify with eSewa transaction status API
+      // GET https://esewa.com.np/api/epay/transaction/status/
+      // with product_code, total_amount, transaction_uuid
 
       await ctx.runMutation(api.payments.updateStatus, {
         id: paymentId as any,
         status: isSuccess ? "completed" : "failed",
-        externalRef: externalRef ?? `${gateway}-${Date.now()}`,
+        externalRef: `esewa-${transactionCode}`,
       });
 
-      return jsonResponse({ success: true });
+      return jsonResponse({
+        success: isSuccess,
+        gateway: "esewa",
+        transactionCode,
+      });
     } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : "Unknown error";
-      return jsonResponse({ error: msg }, 500);
+      return jsonResponse(
+        { error: errorMessage(error) },
+        500,
+      );
+    }
+  }),
+});
+
+// ── Fonepay payment verification ────────────────────────────────────
+// Fonepay sends callback with PRPN (Payment Reference Primary Number).
+http.route({
+  path: "/api/payments/fonepay/verify",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      const { paymentId, PRN, PRC, BID, UID, DV } = body;
+
+      if (!paymentId || !PRN) {
+        return jsonResponse(
+          { error: "Missing paymentId or PRN" },
+          400,
+        );
+      }
+
+      // PRC (Payment Response Code): "successful" means success
+      const isSuccess = PRC === "successful";
+
+      // TODO: Verify signature using DV (Data Validation) field
+      // HMAC-SHA256 of PRN,BID,PRC,UID with shared merchant key
+
+      await ctx.runMutation(api.payments.updateStatus, {
+        id: paymentId as any,
+        status: isSuccess ? "completed" : "failed",
+        externalRef: `fonepay-${PRN}`,
+      });
+
+      return jsonResponse({
+        success: isSuccess,
+        gateway: "fonepay",
+        PRN,
+      });
+    } catch (error) {
+      return jsonResponse(
+        { error: errorMessage(error) },
+        500,
+      );
     }
   }),
 });
 
 // ── Public WiFi endpoint ────────────────────────────────────────────
-// GET /api/wifi/:restaurantSlug — no auth, returns WiFi config for QR
 http.route({
   path: "/api/wifi",
   method: "GET",
@@ -68,7 +155,6 @@ http.route({
       );
     }
 
-    // Look up restaurant by slug
     const restaurant = await ctx.runQuery(api.restaurants.getBySlug, {
       slug,
     });
@@ -76,7 +162,6 @@ http.route({
       return jsonResponse({ error: "Restaurant not found" }, 404);
     }
 
-    // Get active WiFi config
     const wifi = await ctx.runQuery(api.wifi.getActiveByRestaurant, {
       restaurantId: restaurant._id,
     });
@@ -91,7 +176,7 @@ http.route({
   }),
 });
 
-// ── Helper ──────────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────
 function jsonResponse(
   data: unknown,
   status = 200,
@@ -99,11 +184,12 @@ function jsonResponse(
 ) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      "Content-Type": "application/json",
-      ...extraHeaders,
-    },
+    headers: { "Content-Type": "application/json", ...extraHeaders },
   });
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
 }
 
 export default http;

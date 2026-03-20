@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { throwLocalizedError } from "./i18n";
 
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -54,9 +55,7 @@ export const remove = mutation({
       .withIndex("by_category", (q) => q.eq("categoryId", args.id))
       .first();
     if (items) {
-      throw new Error(
-        "Cannot delete a category that still has menu items. Remove or reassign them first.",
-      );
+      throwLocalizedError("menu.category_has_items");
     }
     await ctx.db.delete(args.id);
   },

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { throwLocalizedError } from "./i18n";
 
 export const listByCategory = query({
   args: { categoryId: v.id("categories") },
@@ -106,7 +107,7 @@ export const toggleAvailability = mutation({
   args: { id: v.id("menuItems") },
   handler: async (ctx, args) => {
     const item = await ctx.db.get(args.id);
-    if (!item) throw new Error("Menu item not found");
+    if (!item) throwLocalizedError("menu.item_not_found", { id: args.id });
     await ctx.db.patch(args.id, { isAvailable: !item.isAvailable });
   },
 });

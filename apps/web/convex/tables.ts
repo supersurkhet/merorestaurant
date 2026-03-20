@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { throwLocalizedError } from "./i18n";
 
 export const listByRestaurant = query({
   args: { restaurantId: v.id("restaurants") },
@@ -38,7 +39,7 @@ export const create = mutation({
       .query("tables")
       .withIndex("by_qr_code", (q) => q.eq("qrCode", args.qrCode))
       .unique();
-    if (existing) throw new Error(`QR code "${args.qrCode}" already in use`);
+    if (existing) throwLocalizedError("table.qr_code_in_use", { qrCode: args.qrCode });
 
     return ctx.db.insert("tables", { ...args, status: "available" });
   },
@@ -60,7 +61,7 @@ export const update = mutation({
         .withIndex("by_qr_code", (q) => q.eq("qrCode", fields.qrCode!))
         .unique();
       if (existing && existing._id !== id) {
-        throw new Error(`QR code "${fields.qrCode}" already in use`);
+        throwLocalizedError("table.qr_code_in_use", { qrCode: fields.qrCode! });
       }
     }
     const updates: Record<string, unknown> = {};

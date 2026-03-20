@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { throwLocalizedError } from "./i18n";
 
 export const createPayment = mutation({
   args: {
@@ -18,7 +20,7 @@ export const createPayment = mutation({
   },
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
-    if (!order) throw new Error("Order not found");
+    if (!order) throwLocalizedError("order.not_found");
     return ctx.db.insert("payments", { ...args, status: "pending" });
   },
 });
@@ -46,7 +48,10 @@ export const updateStatus = mutation({
   },
   handler: async (ctx, args) => {
     const payment = await ctx.db.get(args.id);
-    if (!payment) throw new Error("Payment not found");
+    if (!payment) throwLocalizedError("payment.not_found");
+    if (payment.status === "completed" && args.status === "completed") {
+      throwLocalizedError("payment.already_completed");
+    }
 
     const patch: Record<string, unknown> = { status: args.status };
     if (args.externalRef) patch.externalRef = args.externalRef;
@@ -66,6 +71,19 @@ export const updateStatus = mutation({
             currentOrderId: undefined,
           });
         }
+
+        // Notify
+        await ctx.scheduler.runAfter(
+          0,
+          internal.notifications.createNotification,
+          {
+            restaurantId: payment.restaurantId,
+            type: "payment_received",
+            title: `Payment Received`,
+            message: `Rs ${payment.amount} via ${payment.method} for order ${order.orderNumber}.`,
+            orderId: order._id,
+          },
+        );
       }
     }
   },

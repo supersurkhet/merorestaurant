@@ -14,5 +14,8 @@
     "convex-svelte": "^0.0.12",
     "turbo": "^2.8.20",
     "web": "workspace:*"
+  },
+  "dependencies": {
+    "@nabwin/paisa": "^0.3.0"
   }
 }

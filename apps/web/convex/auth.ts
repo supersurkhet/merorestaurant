@@ -5,6 +5,7 @@ import {
   type MutationCtx,
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { throwLocalizedError } from "./i18n";
 
 // ── JWT verification ────────────────────────────────────────────────
 // WorkOS JWTs are RS256-signed. In Convex (V8 runtime) we do a
@@ -22,7 +23,7 @@ interface WorkosJwtPayload {
 
 export function decodeJwtPayload(token: string): WorkosJwtPayload {
   const parts = token.split(".");
-  if (parts.length !== 3) throw new Error("Invalid JWT format");
+  if (parts.length !== 3) throwLocalizedError("auth.invalid_jwt");
   // base64url → base64 → decode
   const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
   const json = atob(base64);
@@ -33,7 +34,7 @@ export function verifyWorkosToken(token: string): WorkosJwtPayload {
   const payload = decodeJwtPayload(token);
   if (!payload.sub) throw new Error("JWT missing sub claim");
   if (payload.exp && payload.exp * 1000 < Date.now()) {
-    throw new Error("JWT has expired");
+    throwLocalizedError("auth.jwt_expired");
   }
   return payload;
 }
@@ -53,7 +54,7 @@ export async function getStaffByToken(
 
   const active = staffEntries.find((s) => s.isActive);
   if (!active) {
-    throw new Error("No active staff account for this user");
+    throwLocalizedError("auth.no_active_staff");
   }
   return active;
 }
@@ -69,9 +70,10 @@ export async function requireRole(
 ): Promise<Doc<"staff">> {
   const staff = await getStaffByToken(ctx, token);
   if (!roles.includes(staff.role)) {
-    throw new Error(
-      `Access denied: requires one of [${roles.join(", ")}], you have "${staff.role}"`,
-    );
+    throwLocalizedError("auth.access_denied", {
+      roles: roles.join(", "),
+      current: staff.role,
+    });
   }
   return staff;
 }

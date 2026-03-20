@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { throwLocalizedError } from "./i18n";
 
 export const getBySlug = query({
   args: { slug: v.string() },
@@ -38,7 +39,7 @@ export const create = mutation({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
     if (existing) {
-      throw new Error(`Restaurant with slug "${args.slug}" already exists`);
+      throwLocalizedError("restaurant.slug_taken", { slug: args.slug });
     }
     return ctx.db.insert("restaurants", { ...args, isActive: true });
   },

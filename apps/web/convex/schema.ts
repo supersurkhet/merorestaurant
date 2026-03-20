@@ -157,6 +157,22 @@ export default defineSchema({
     .index("by_order", ["orderId"])
     .index("by_restaurant", ["restaurantId"]),
 
+  notifications: defineTable({
+    restaurantId: v.id("restaurants"),
+    type: v.union(
+      v.literal("new_order"),
+      v.literal("order_ready"),
+      v.literal("payment_received"),
+      v.literal("order_cancelled"),
+    ),
+    title: v.string(),
+    message: v.string(),
+    orderId: v.optional(v.id("orders")),
+    isRead: v.boolean(),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_restaurant_unread", ["restaurantId", "isRead"]),
+
   wifiConfigs: defineTable({
     restaurantId: v.id("restaurants"),
     ssid: v.string(),

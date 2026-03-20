@@ -1,8 +1,32 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
+import { throwLocalizedError } from "./i18n";
 
 const TAX_RATE = 0.13; // 13% VAT (Nepal)
+const NEPAL_OFFSET_MS = (5 * 60 + 45) * 60 * 1000;
+
+/** Generate date-based order number: ORD-MMDD-NNN */
+function generateOrderNumber(
+  existingToday: number,
+  now: number = Date.now(),
+): string {
+  const nepalTime = new Date(now + NEPAL_OFFSET_MS);
+  const mm = String(nepalTime.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(nepalTime.getUTCDate()).padStart(2, "0");
+  const seq = String(existingToday + 1).padStart(3, "0");
+  return `ORD-${mm}${dd}-${seq}`;
+}
+
+/** Get Nepal day boundaries for counting today's orders */
+function getTodayBounds(): { start: number; end: number } {
+  const nowUtc = Date.now();
+  const nepalNow = nowUtc + NEPAL_OFFSET_MS;
+  const dayStart =
+    Math.floor(nepalNow / 86_400_000) * 86_400_000 - NEPAL_OFFSET_MS;
+  return { start: dayStart, end: dayStart + 86_400_000 };
+}
 
 export const placeOrder = mutation({
   args: {
@@ -22,17 +46,21 @@ export const placeOrder = mutation({
   },
   handler: async (ctx, args) => {
     if (args.items.length === 0) {
-      throw new Error("Order must have at least one item");
+      throwLocalizedError("order.empty_items");
     }
 
-    // Generate order number: ORD-XXXX (sequential per restaurant)
-    const existingOrders = await ctx.db
+    // Count today's orders for sequential numbering
+    const { start, end } = getTodayBounds();
+    const todaysOrders = await ctx.db
       .query("orders")
       .withIndex("by_restaurant", (q) =>
         q.eq("restaurantId", args.restaurantId),
       )
       .collect();
-    const orderNumber = `ORD-${String(existingOrders.length + 1).padStart(4, "0")}`;
+    const todayCount = todaysOrders.filter(
+      (o) => o._creationTime >= start && o._creationTime < end,
+    ).length;
+    const orderNumber = generateOrderNumber(todayCount);
 
     // Snapshot each menu item's name + price, calculate totals
     let subtotal = 0;
@@ -48,10 +76,10 @@ export const placeOrder = mutation({
     for (const item of args.items) {
       const menuItem = await ctx.db.get(item.menuItemId);
       if (!menuItem) {
-        throw new Error(`Menu item not found: ${item.menuItemId}`);
+        throwLocalizedError("menu.item_not_found", { id: item.menuItemId });
       }
       if (!menuItem.isAvailable) {
-        throw new Error(`"${menuItem.name}" is currently unavailable`);
+        throwLocalizedError("menu.item_unavailable", { name: menuItem.name });
       }
       const totalPrice = menuItem.price * item.quantity;
       subtotal += totalPrice;
@@ -105,6 +133,20 @@ export const placeOrder = mutation({
       });
     }
 
+    // Send real-time notification
+    const itemSummary = itemSnapshots
+      .map((s) => `${s.quantity}x ${s.name}`)
+      .join(", ");
+    await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
+      restaurantId: args.restaurantId,
+      type: "new_order",
+      title: `New Order ${orderNumber}`,
+      message: args.tableId
+        ? `Table order: ${itemSummary} (Rs ${total})`
+        : `Takeaway: ${itemSummary} (Rs ${total})`,
+      orderId,
+    });
+
     return { orderId, orderNumber };
   },
 });
@@ -146,7 +188,6 @@ export const getByRestaurant = query({
         .collect();
     }
 
-    // Join orderItems
     return Promise.all(
       orders.map(async (order) => {
         const items = await ctx.db
@@ -162,7 +203,6 @@ export const getByRestaurant = query({
 export const getByTable = query({
   args: { tableId: v.id("tables") },
   handler: async (ctx, args) => {
-    // Get active (non-completed, non-cancelled) orders for this table
     const orders = await ctx.db
       .query("orders")
       .withIndex("by_table", (q) => q.eq("tableId", args.tableId))
@@ -220,12 +260,11 @@ export const updateStatus = mutation({
   },
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.id);
-    if (!order) throw new Error("Order not found");
+    if (!order) throwLocalizedError("order.not_found");
 
     const now = Date.now();
     const patch: Record<string, unknown> = { status: args.status };
 
-    // Set the appropriate timestamp
     const timestampMap: Record<string, string> = {
       confirmed: "confirmedAt",
       preparing: "preparingAt",
@@ -238,17 +277,27 @@ export const updateStatus = mutation({
 
     await ctx.db.patch(args.id, patch);
 
-    // Free table on completed/served
-    if (
-      (args.status === "completed" || args.status === "served") &&
-      order.tableId
-    ) {
-      if (args.status === "completed") {
-        await ctx.db.patch(order.tableId, {
-          status: "cleaning",
-          currentOrderId: undefined,
-        });
-      }
+    // Free table on completed
+    if (args.status === "completed" && order.tableId) {
+      await ctx.db.patch(order.tableId, {
+        status: "cleaning",
+        currentOrderId: undefined,
+      });
+    }
+
+    // Notify when order is ready
+    if (args.status === "ready") {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          restaurantId: order.restaurantId,
+          type: "order_ready",
+          title: `Order ${order.orderNumber} Ready`,
+          message: `Order ${order.orderNumber} is ready to be served.`,
+          orderId: order._id,
+        },
+      );
     }
   },
 });
@@ -257,9 +306,12 @@ export const cancelOrder = mutation({
   args: { id: v.id("orders") },
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.id);
-    if (!order) throw new Error("Order not found");
-    if (order.status === "completed" || order.status === "cancelled") {
-      throw new Error(`Cannot cancel an order that is already ${order.status}`);
+    if (!order) throwLocalizedError("order.not_found");
+    if (order.status === "completed") {
+      throwLocalizedError("order.already_completed");
+    }
+    if (order.status === "cancelled") {
+      throwLocalizedError("order.already_cancelled");
     }
 
     await ctx.db.patch(args.id, {
@@ -285,5 +337,18 @@ export const cancelOrder = mutation({
         await ctx.db.patch(item._id, { status: "cancelled" });
       }
     }
+
+    // Notify
+    await ctx.scheduler.runAfter(
+      0,
+      internal.notifications.createNotification,
+      {
+        restaurantId: order.restaurantId,
+        type: "order_cancelled",
+        title: `Order ${order.orderNumber} Cancelled`,
+        message: `Order ${order.orderNumber} has been cancelled.`,
+        orderId: order._id,
+      },
+    );
   },
 });

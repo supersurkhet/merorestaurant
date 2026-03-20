@@ -10,8 +10,8 @@ const translations: Record<Locale, Record<string, string>> = {
 		// Auth
 		'auth.signIn': 'Sign in to Mero Restaurant',
 		'auth.signInDesc': 'Admin dashboard for restaurant management',
-		'auth.signInWorkOS': 'Sign in with WorkOS',
-		'auth.redirecting': 'Redirecting to WorkOS...',
+		'auth.signInWorkOS': 'Sign In',
+		'auth.redirecting': 'Redirecting...',
 		'auth.completeInBrowser': 'Complete sign-in in your browser',
 		'auth.authFailed': 'Sign In Failed',
 		'auth.signOut': 'Sign Out',
@@ -233,7 +233,7 @@ const translations: Record<Locale, Record<string, string>> = {
 		// Auth
 		'auth.signIn': 'मेरो रेस्टुरेन्टमा साइन इन',
 		'auth.signInDesc': 'रेस्टुरेन्ट व्यवस्थापनको लागि एडमिन ड्यासबोर्ड',
-		'auth.signInWorkOS': 'WorkOS मार्फत साइन इन',
+		'auth.signInWorkOS': 'साइन इन',
 		'auth.redirecting': 'WorkOS मा रिडाइरेक्ट हुँदैछ...',
 		'auth.completeInBrowser': 'ब्राउजरमा साइन-इन पूरा गर्नुहोस्',
 		'auth.authFailed': 'साइन इन असफल भयो',

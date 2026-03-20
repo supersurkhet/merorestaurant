@@ -1,4 +1,4 @@
-// Real WorkOS auth for Tauri desktop app — no dev/mock fallbacks
+// Authentication store for Tauri desktop app
 // Root convex roles: owner, manager, chef, waiter, cashier
 
 type ConvexRole = 'owner' | 'manager' | 'chef' | 'waiter' | 'cashier';

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import type L from 'leaflet';
+	import Switch from '$lib/components/ui/switch.svelte';
 
 	interface Props {
 		latitude?: number;
@@ -111,7 +112,7 @@
 	<div class="flex items-center justify-between">
 		<span class="text-sm font-medium">Location</span>
 		<label class="flex items-center gap-2 text-xs text-muted-foreground">
-			<input type="checkbox" bind:checked={skipLocation} class="rounded" />
+			<Switch bind:checked={skipLocation} />
 			No physical location
 		</label>
 	</div>

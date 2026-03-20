@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { MapPin, Loader2, X } from 'lucide-svelte';
+	import Input from '$lib/components/ui/input/input.svelte';
+	import Label from '$lib/components/ui/label/label.svelte';
 
 	let {
 		latitude = $bindable<number | undefined>(undefined),
@@ -136,21 +138,21 @@
 	{:else if hasLocation}
 		<div class="space-y-2">
 			<div>
-				<label for="loc-address" class="mb-1 block text-[12px] text-muted-foreground">Address</label>
-				<input
+				<Label for="loc-address" class="text-[12px]">Address</Label>
+				<Input
 					id="loc-address"
 					bind:value={address}
 					type="text"
-					class="w-full rounded-lg border border-input bg-background px-3 py-2 text-[13px] text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+					class="text-[13px]"
 				/>
 			</div>
 			<div>
-				<label for="loc-city" class="mb-1 block text-[12px] text-muted-foreground">City</label>
-				<input
+				<Label for="loc-city" class="text-[12px]">City</Label>
+				<Input
 					id="loc-city"
 					bind:value={city}
 					type="text"
-					class="w-full rounded-lg border border-input bg-background px-3 py-2 text-[13px] text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+					class="text-[13px]"
 				/>
 			</div>
 			<p class="text-[11px] text-muted-foreground/60">

@@ -27,7 +27,7 @@
 
 	async function loginWithWorkOS() {
 		if (!WORKOS_CLIENT_ID) {
-			error = 'WorkOS client ID not configured. Set VITE_WORKOS_CLIENT_ID in .env';
+			error = 'Authentication not configured. Please contact support.';
 			return;
 		}
 
@@ -75,10 +75,10 @@
 		>
 			{#if isRedirecting}
 				<Loader2 size={20} class="animate-spin" />
-				Redirecting to WorkOS...
+				Redirecting...
 			{:else}
 				<LogIn size={20} />
-				{i18n.t('auth.signInWorkOS')}
+				{i18n.t('auth.signIn')}
 			{/if}
 		</Button>
 

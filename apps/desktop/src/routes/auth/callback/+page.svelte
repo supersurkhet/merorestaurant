@@ -20,7 +20,7 @@
 		const code = $page.url.searchParams.get('code');
 		if (!code) {
 			status = 'error';
-			error = 'No authorization code received from WorkOS.';
+			error = 'No authorization code received. Please try again.';
 			return;
 		}
 
@@ -33,12 +33,12 @@
 
 		try {
 			// Step 1: Exchange code for WorkOS user profile (PKCE — no secret needed)
-			statusMessage = 'Authenticating with WorkOS...';
+			statusMessage = 'Authenticating...';
 			const workosUser = await auth.exchangeCodeForUser(code, WORKOS_CLIENT_ID, codeVerifier);
 			auth.clearCodeVerifier();
 
 			if (!workosUser) {
-				throw new Error('Failed to get user profile from WorkOS');
+				throw new Error('Failed to get user profile. Please try again.');
 			}
 
 			// Step 2: Create or find user in Convex

@@ -4,9 +4,11 @@ import { internal } from "./_generated/api";
 import { throwLocalizedError } from "./i18n";
 import { checkRateLimit } from "./rateLimit";
 import { validatePaymentAmount } from "./validation";
+import { authenticateForRestaurant } from "./auth";
 
 export const createPayment = mutation({
   args: {
+    workosUserId: v.string(),
     restaurantId: v.id("restaurants"),
     orderId: v.id("orders"),
     method: v.union(
@@ -21,6 +23,7 @@ export const createPayment = mutation({
     processedBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await authenticateForRestaurant(ctx, args.workosUserId, args.restaurantId);
     await checkRateLimit(ctx, "createPayment", args.orderId);
     validatePaymentAmount(args.amount);
 

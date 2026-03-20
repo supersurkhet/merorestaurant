@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
 import { validateSlug, validatePhone, validateStringLength } from "./validation";
+import { requireRole } from "./auth";
 
 /** Register a new restaurant and make the caller the owner. */
 export const register = mutation({
@@ -104,6 +105,7 @@ export const getByOwner = query({
 
 export const update = mutation({
   args: {
+    workosUserId: v.string(),
     id: v.id("restaurants"),
     name: v.optional(v.string()),
     address: v.optional(v.string()),
@@ -113,9 +115,10 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, args.workosUserId, args.id, ["owner", "manager"]);
     if (args.name) validateStringLength(args.name, "Restaurant name", 100);
     if (args.phone) validatePhone(args.phone);
-    const { id, ...fields } = args;
+    const { id, workosUserId, ...fields } = args;
     const updates: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) updates[key] = val;

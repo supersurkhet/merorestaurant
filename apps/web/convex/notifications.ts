@@ -1,9 +1,6 @@
 import { v } from "convex/values";
-import {
-  internalMutation,
-  mutation,
-  query,
-} from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { authenticateForRestaurant } from "./auth";
 
 export const getUnread = query({
   args: { restaurantId: v.id("restaurants") },
@@ -19,15 +16,19 @@ export const getUnread = query({
 });
 
 export const markRead = mutation({
-  args: { id: v.id("notifications") },
+  args: { workosUserId: v.string(), id: v.id("notifications") },
   handler: async (ctx, args) => {
+    const notif = await ctx.db.get(args.id);
+    if (!notif) return;
+    await authenticateForRestaurant(ctx, args.workosUserId, notif.restaurantId);
     await ctx.db.patch(args.id, { isRead: true });
   },
 });
 
 export const markAllRead = mutation({
-  args: { restaurantId: v.id("restaurants") },
+  args: { workosUserId: v.string(), restaurantId: v.id("restaurants") },
   handler: async (ctx, args) => {
+    await authenticateForRestaurant(ctx, args.workosUserId, args.restaurantId);
     const unread = await ctx.db
       .query("notifications")
       .withIndex("by_restaurant_unread", (q) =>
@@ -54,9 +55,6 @@ export const createNotification = internalMutation({
     orderId: v.optional(v.id("orders")),
   },
   handler: async (ctx, args) => {
-    return ctx.db.insert("notifications", {
-      ...args,
-      isRead: false,
-    });
+    return ctx.db.insert("notifications", { ...args, isRead: false });
   },
 });

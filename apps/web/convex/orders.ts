@@ -10,6 +10,7 @@ import {
   validateStringLength,
   validateOrderItems,
 } from "./validation";
+import { authenticateForRestaurant } from "./auth";
 
 const DEFAULT_TAX_RATE = 0.13;
 const NEPAL_OFFSET_MS = (5 * 60 + 45) * 60 * 1000;
@@ -296,6 +297,7 @@ export const getByOrderNumber = query({
 
 export const updateStatus = mutation({
   args: {
+    workosUserId: v.string(),
     id: v.id("orders"),
     status: v.union(
       v.literal("confirmed"),
@@ -308,6 +310,7 @@ export const updateStatus = mutation({
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.id);
     if (!order) throwLocalizedError("order.not_found");
+    await authenticateForRestaurant(ctx, args.workosUserId, order.restaurantId);
 
     const now = Date.now();
     const patch: Record<string, unknown> = { status: args.status };
@@ -347,10 +350,11 @@ export const updateStatus = mutation({
 });
 
 export const cancelOrder = mutation({
-  args: { id: v.id("orders") },
+  args: { workosUserId: v.string(), id: v.id("orders") },
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.id);
     if (!order) throwLocalizedError("order.not_found");
+    await authenticateForRestaurant(ctx, args.workosUserId, order.restaurantId);
     if (order.status === "completed") throwLocalizedError("order.already_completed");
     if (order.status === "cancelled") throwLocalizedError("order.already_cancelled");
 

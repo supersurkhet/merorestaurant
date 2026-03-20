@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { throwLocalizedError } from "./i18n";
 import { validateStringLength } from "./validation";
+import { requireRole } from "./auth";
 
 /** List active categories for a restaurant, sorted by sortOrder. */
 export const listByRestaurant = query({
@@ -21,19 +22,24 @@ export const listByRestaurant = query({
 
 export const create = mutation({
   args: {
+    workosUserId: v.string(),
     restaurantId: v.id("restaurants"),
     name: v.string(),
     nameNe: v.optional(v.string()),
     sortOrder: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, args.workosUserId, args.restaurantId, ["owner", "manager"]);
     validateStringLength(args.name, "Category name", 50);
-    return ctx.db.insert("categories", { ...args, isActive: true });
+    const { workosUserId, ...data } = args;
+    return ctx.db.insert("categories", { ...data, isActive: true });
   },
 });
 
 export const update = mutation({
   args: {
+    workosUserId: v.string(),
+    restaurantId: v.id("restaurants"),
     id: v.id("categories"),
     name: v.optional(v.string()),
     nameNe: v.optional(v.string()),
@@ -41,8 +47,9 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, args.workosUserId, args.restaurantId, ["owner", "manager"]);
     if (args.name) validateStringLength(args.name, "Category name", 50);
-    const { id, ...fields } = args;
+    const { id, workosUserId, restaurantId, ...fields } = args;
     const updates: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) updates[key] = val;
@@ -52,8 +59,13 @@ export const update = mutation({
 });
 
 export const remove = mutation({
-  args: { id: v.id("categories") },
+  args: {
+    workosUserId: v.string(),
+    restaurantId: v.id("restaurants"),
+    id: v.id("categories"),
+  },
   handler: async (ctx, args) => {
+    await requireRole(ctx, args.workosUserId, args.restaurantId, ["owner", "manager"]);
     const items = await ctx.db
       .query("menuItems")
       .withIndex("by_category", (q) => q.eq("categoryId", args.id))

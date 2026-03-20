@@ -1,34 +1,9 @@
 import { v } from "convex/values";
-import { query, type QueryCtx, type MutationCtx } from "./_generated/server";
+import { query, mutation, type QueryCtx, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { throwLocalizedError } from "./i18n";
 
-// ── JWT helpers ─────────────────────────────────────────────────────
-
-interface WorkosJwtPayload {
-  sub: string;
-  exp: number;
-  iat: number;
-  org_id?: string;
-}
-
-export function decodeJwtPayload(token: string): WorkosJwtPayload {
-  const parts = token.split(".");
-  if (parts.length !== 3) throwLocalizedError("auth.invalid_jwt");
-  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-  return JSON.parse(atob(base64));
-}
-
-export function verifyWorkosToken(token: string): WorkosJwtPayload {
-  const payload = decodeJwtPayload(token);
-  if (!payload.sub) throwLocalizedError("auth.invalid_jwt");
-  if (payload.exp && payload.exp * 1000 < Date.now()) {
-    throwLocalizedError("auth.jwt_expired");
-  }
-  return payload;
-}
-
-// ── Multi-tenant auth context ───────────────────────────────────────
+// ── Auth context ────────────────────────────────────────────────────
 
 export interface AuthContext {
   workosUserId: string;
@@ -38,15 +13,16 @@ export interface AuthContext {
 }
 
 /**
- * Resolve the current user in the context of a specific restaurant.
- * Ensures the user is an active staff member of that restaurant.
+ * Authenticate a user for a specific restaurant.
+ * The workosUserId is passed from the SvelteKit server after JWT verification.
+ * Convex validates the user is an active staff member of the restaurant.
  */
 export async function authenticateForRestaurant(
   ctx: QueryCtx | MutationCtx,
-  token: string,
+  workosUserId: string,
   restaurantId: Id<"restaurants">,
 ): Promise<AuthContext> {
-  const { sub: workosUserId } = verifyWorkosToken(token);
+  if (!workosUserId) throwLocalizedError("auth.unauthorized");
 
   const staffEntries = await ctx.db
     .query("staff")
@@ -56,9 +32,7 @@ export async function authenticateForRestaurant(
   const staff = staffEntries.find(
     (s) => s.workosUserId === workosUserId && s.isActive,
   );
-  if (!staff) {
-    throwLocalizedError("auth.unauthorized");
-  }
+  if (!staff) throwLocalizedError("auth.unauthorized");
 
   return { workosUserId, staff, restaurantId, role: staff.role };
 }
@@ -68,11 +42,11 @@ export async function authenticateForRestaurant(
  */
 export async function requireRole(
   ctx: QueryCtx | MutationCtx,
-  token: string,
+  workosUserId: string,
   restaurantId: Id<"restaurants">,
   roles: Doc<"staff">["role"][],
 ): Promise<AuthContext> {
-  const auth = await authenticateForRestaurant(ctx, token, restaurantId);
+  const auth = await authenticateForRestaurant(ctx, workosUserId, restaurantId);
   if (!roles.includes(auth.role)) {
     throwLocalizedError("auth.access_denied", {
       roles: roles.join(", "),
@@ -82,12 +56,39 @@ export async function requireRole(
   return auth;
 }
 
+/**
+ * Lightweight auth check — just verify the workosUserId exists as a platform user.
+ * Used for operations that aren't restaurant-scoped (e.g. registering a new restaurant).
+ */
+export async function authenticateUser(
+  ctx: QueryCtx | MutationCtx,
+  workosUserId: string,
+): Promise<Doc<"users"> | null> {
+  if (!workosUserId) throwLocalizedError("auth.unauthorized");
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_workos_user", (q) => q.eq("workosUserId", workosUserId))
+    .unique();
+  return user;
+}
+
 // ── Public queries ──────────────────────────────────────────────────
 
-/** Get all restaurants a user has access to (with their role in each). */
+/** Get the current user's profile and all restaurants they have access to. */
 export const currentUser = query({
   args: { workosUserId: v.string() },
   handler: async (ctx, args) => {
+    if (!args.workosUserId) return null;
+
+    // Get platform user
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_workos_user", (q) =>
+        q.eq("workosUserId", args.workosUserId),
+      )
+      .unique();
+
+    // Get all restaurant memberships
     const staffEntries = await ctx.db
       .query("staff")
       .withIndex("by_workos_user", (q) =>
@@ -95,24 +96,27 @@ export const currentUser = query({
       )
       .collect();
 
-    const active = staffEntries.filter((s) => s.isActive);
-
     const restaurants = await Promise.all(
-      active.map(async (s) => {
-        const restaurant = await ctx.db.get(s.restaurantId);
-        if (!restaurant || !restaurant.isActive) return null;
-        return {
-          restaurantId: s.restaurantId,
-          restaurantName: restaurant.name,
-          restaurantSlug: restaurant.slug,
-          role: s.role,
-          staffId: s._id,
-        };
-      }),
+      staffEntries
+        .filter((s) => s.isActive)
+        .map(async (s) => {
+          const restaurant = await ctx.db.get(s.restaurantId);
+          if (!restaurant || !restaurant.isActive) return null;
+          return {
+            restaurantId: s.restaurantId,
+            restaurantName: restaurant.name,
+            restaurantSlug: restaurant.slug,
+            role: s.role,
+            staffId: s._id,
+          };
+        }),
     );
 
     return {
       workosUserId: args.workosUserId,
+      user: user
+        ? { name: user.name, email: user.email, isPlatformAdmin: user.isPlatformAdmin }
+        : null,
       restaurants: restaurants.filter(Boolean),
     };
   },
@@ -136,5 +140,38 @@ export const getRoleInRestaurant = query({
       (s) => s.workosUserId === args.workosUserId && s.isActive,
     );
     return member ? { role: member.role, staffId: member._id } : null;
+  },
+});
+
+/** Ensure a platform user record exists (called after WorkOS login). */
+export const ensureUser = mutation({
+  args: {
+    workosUserId: v.string(),
+    name: v.string(),
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_workos_user", (q) =>
+        q.eq("workosUserId", args.workosUserId),
+      )
+      .unique();
+
+    if (existing) {
+      // Update name/email if changed
+      await ctx.db.patch(existing._id, {
+        name: args.name,
+        email: args.email,
+      });
+      return existing._id;
+    }
+
+    return ctx.db.insert("users", {
+      workosUserId: args.workosUserId,
+      name: args.name,
+      email: args.email,
+      isPlatformAdmin: false,
+    });
   },
 });

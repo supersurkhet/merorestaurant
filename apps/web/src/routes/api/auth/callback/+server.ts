@@ -1,4 +1,4 @@
-import { redirect } from "@sveltejs/kit";
+import { isRedirect, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import {
   getWorkOS,
@@ -49,16 +49,21 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
       expiresAt: Date.now() + SESSION_MAX_AGE * 1000,
     };
 
+    const isSecure = url.protocol === "https:";
     cookies.set(SESSION_COOKIE, await encodeSession(session), {
       path: "/",
       httpOnly: true,
-      secure: true,
+      secure: isSecure,
       sameSite: "lax",
       maxAge: SESSION_MAX_AGE,
     });
 
     redirect(302, returnTo);
   } catch (error) {
+    // Re-throw SvelteKit redirects — they are not errors
+    if (isRedirect(error)) {
+      throw error;
+    }
     console.error("WorkOS auth callback error:", error);
     redirect(302, "/?error=auth_failed");
   }

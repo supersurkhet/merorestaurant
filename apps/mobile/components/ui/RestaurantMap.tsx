@@ -9,6 +9,7 @@ let Callout: any = null;
 
 try {
   if (Platform.OS !== 'web') {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Maps = require('react-native-maps');
     MapView = Maps.default;
     Marker = Maps.Marker;

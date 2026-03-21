@@ -11,8 +11,10 @@
     "check": "turbo check"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.0.0",
     "convex": "^1.34.0",
     "convex-svelte": "^0.0.12",
+    "typescript": "^5.9.3",
     "turbo": "^2.8.20",
     "web": "workspace:*"
   },

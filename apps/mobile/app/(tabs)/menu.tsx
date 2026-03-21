@@ -6,13 +6,11 @@ import {
   FlatList,
   TextInput,
   StyleSheet,
-  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import { ErrorBoundary } from '../../components/ui/ErrorBoundary';
 import { MenuSkeleton } from '../../components/ui/Skeleton';
 import { CategoryPill } from '../../components/ui/CategoryPill';
 import { MenuItemCard } from '../../components/ui/MenuItemCard';

@@ -8,5 +8,4 @@ build/
 .env.*.local
 *.log
 .DS_Store
-bun.lock
 target/

@@ -6,9 +6,8 @@ import { useQuery } from 'convex/react';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useSessionStore } from '../../store/session';
 import { api } from '../../lib/convex-api';
-import type { Id } from '../../lib/convex-types';
 import { OrdersSkeleton } from '../../components/ui/Skeleton';
-import type { Order, OrderItem as ConvexOrderItem } from '../../lib/convex-types';
+import type { Id, Order, OrderItem as ConvexOrderItem } from '../../lib/convex-types';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   placed: { label: 'Placed', color: '#f59e0b', bg: '#fef3c7' },

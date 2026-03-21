@@ -219,7 +219,7 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderLeft}>
                 <Flame size={18} color="#dc2626" />
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Specials</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Today&apos;s Specials</Text>
               </View>
             </View>
             <View style={styles.specialsList}>
